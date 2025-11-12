@@ -60,14 +60,18 @@ const Index = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button asChild size="lg" className="gradient-primary shadow-medium hover:shadow-large transition-smooth">
-                  <Link to="/upload">
-                    Upload Resume <ArrowRight className="ml-2 h-5 w-5" />
+                  <Link to="/auth">
+                    Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg">
                   <Link to="/chatbot">Try Chatbot</Link>
                 </Button>
               </div>
+              <p className="text-sm text-muted-foreground mt-4 flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Sign in required to upload and analyze resumes
+              </p>
             </div>
             <div className="animate-fade-in">
               <img
@@ -213,10 +217,13 @@ const Index = () => {
                 better jobs with our AI-powered platform.
               </p>
               <Button asChild size="lg" variant="secondary" className="shadow-medium">
-                <Link to="/upload">
-                  Upload Your Resume Now <ArrowRight className="ml-2 h-5 w-5" />
+                <Link to="/auth">
+                  Sign Up Now <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
+              <p className="text-sm mt-4 opacity-80">
+                Free account required • No credit card needed
+              </p>
             </CardContent>
           </Card>
         </div>

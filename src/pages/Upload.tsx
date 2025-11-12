@@ -19,15 +19,19 @@ const Upload = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+
     // Check if user is authenticated
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       if (!session) {
         toast({
-          title: "Authentication required",
-          description: "Please sign in to upload your resume.",
+          title: "Sign in required",
+          description: "You must be signed in to upload and analyze resumes.",
           variant: "destructive",
         });
-        navigate("/auth");
+        navigate("/auth", { replace: true });
       } else {
         setIsLoading(false);
       }
@@ -35,12 +39,21 @@ const Upload = () => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate("/auth");
+      if (!mounted) return;
+      
+      if (!session && event === 'SIGNED_OUT') {
+        toast({
+          title: "Session ended",
+          description: "Please sign in again to continue.",
+        });
+        navigate("/auth", { replace: true });
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate, toast]);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -115,7 +128,10 @@ const Upload = () => {
       <div className="min-h-screen flex flex-col">
         <Navbar />
         <main className="flex-grow flex items-center justify-center">
-          <p className="text-muted-foreground">Loading...</p>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Verifying authentication...</p>
+          </div>
         </main>
         <Footer />
       </div>

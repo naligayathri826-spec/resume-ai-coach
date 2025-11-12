@@ -39,7 +39,7 @@ const Navbar = () => {
 
   const navLinks = [
     { name: "Home", path: "/" },
-    { name: "Upload Resume", path: "/upload" },
+    { name: "Upload Resume", path: "/upload", authRequired: true },
     { name: "Chatbot", path: "/chatbot" },
   ];
 
@@ -56,19 +56,33 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-6">
-            {navLinks.map((link) => (
-              <Link
-                key={link.path}
-                to={link.path}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  location.pathname === link.path
-                    ? "text-primary"
-                    : "text-muted-foreground"
-                }`}
-              >
-                {link.name}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const handleClick = (e: React.MouseEvent) => {
+                if (link.authRequired && !user) {
+                  e.preventDefault();
+                  navigate("/auth");
+                  toast({
+                    title: "Sign in required",
+                    description: "Please sign in to upload your resume.",
+                  });
+                }
+              };
+
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={handleClick}
+                  className={`text-sm font-medium transition-colors hover:text-primary ${
+                    location.pathname === link.path
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
             {user ? (
               <Button
                 variant="outline"
@@ -99,20 +113,34 @@ const Navbar = () => {
         {isMenuOpen && (
           <div className="md:hidden py-4 animate-fade-in">
             <div className="flex flex-col space-y-3">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`text-sm font-medium py-2 transition-colors hover:text-primary ${
-                    location.pathname === link.path
-                      ? "text-primary"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
+              {navLinks.map((link) => {
+                const handleClick = (e: React.MouseEvent) => {
+                  setIsMenuOpen(false);
+                  if (link.authRequired && !user) {
+                    e.preventDefault();
+                    navigate("/auth");
+                    toast({
+                      title: "Sign in required",
+                      description: "Please sign in to upload your resume.",
+                    });
+                  }
+                };
+
+                return (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    onClick={handleClick}
+                    className={`text-sm font-medium py-2 transition-colors hover:text-primary ${
+                      location.pathname === link.path
+                        ? "text-primary"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
               {user ? (
                 <Button
                   variant="outline"
