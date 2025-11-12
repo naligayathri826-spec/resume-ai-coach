@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, Search, Briefcase, MessageSquare, BarChart3 } from "lucide-react";
+import { ArrowRight, Search, Briefcase, MessageSquare, BarChart3, UserPlus, LogIn, Shield, Zap, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import heroImage from "@/assets/hero-image.jpg";
@@ -119,6 +119,83 @@ const Index = () => {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Sign In Section */}
+      <section className="py-16 md:py-24 bg-gradient-subtle">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-12 animate-fade-in-up">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Start Your Journey Today
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                Create a free account to unlock all features and start analyzing your resume
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              <Card className="shadow-soft border-border bg-card animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Shield className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="font-bold text-foreground mb-2">Secure & Private</h3>
+                  <p className="text-sm text-muted-foreground">Your data is encrypted and protected</p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-soft border-border bg-card animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Zap className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="font-bold text-foreground mb-2">Instant Access</h3>
+                  <p className="text-sm text-muted-foreground">Get started in seconds, no waiting</p>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-soft border-border bg-card animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center mx-auto mb-4">
+                    <Clock className="h-6 w-6 text-primary-foreground" />
+                  </div>
+                  <h3 className="font-bold text-foreground mb-2">Save Progress</h3>
+                  <p className="text-sm text-muted-foreground">Access your analyses anytime</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="shadow-large border-border bg-card animate-fade-in">
+              <CardContent className="p-8 md:p-12">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                  <div className="flex-1 text-center md:text-left">
+                    <h3 className="text-2xl font-bold text-foreground mb-2">
+                      Already have an account?
+                    </h3>
+                    <p className="text-muted-foreground mb-4 md:mb-0">
+                      Sign in to continue analyzing your resume
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button asChild size="lg" variant="outline" className="gap-2">
+                      <Link to="/auth">
+                        <LogIn className="h-5 w-5" />
+                        Sign In
+                      </Link>
+                    </Button>
+                    <Button asChild size="lg" className="gradient-primary shadow-medium gap-2">
+                      <Link to="/auth">
+                        <UserPlus className="h-5 w-5" />
+                        Create Account
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
