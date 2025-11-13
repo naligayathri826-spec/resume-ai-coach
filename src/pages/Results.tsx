@@ -1,32 +1,107 @@
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Download, MessageSquare, TrendingUp, CheckCircle2, AlertCircle } from "lucide-react";
+import { Download, MessageSquare, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Skill {
+  name: string;
+  level: number;
+}
+
+interface JobMatch {
+  company: string;
+  position: string;
+  match: number;
+  location: string;
+  salary: string;
+}
+
+interface AnalysisData {
+  field_category: string;
+  overall_score: number;
+  skills: Skill[];
+  job_matches: JobMatch[];
+  improvement_tips: string[];
+}
 
 const Results = () => {
-  const skills = [
-    { name: "React", level: 85, status: "strong" },
-    { name: "TypeScript", level: 75, status: "strong" },
-    { name: "Node.js", level: 60, status: "moderate" },
-    { name: "Python", level: 40, status: "needs-improvement" },
-    { name: "Machine Learning", level: 25, status: "needs-improvement" },
-  ];
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
 
-  const jobMatches = [
-    { title: "Senior Frontend Developer", company: "Tech Corp", match: 92, salary: "$120k - $150k" },
-    { title: "Full Stack Engineer", company: "StartupXYZ", match: 85, salary: "$110k - $140k" },
-    { title: "React Developer", company: "Digital Agency", match: 78, salary: "$90k - $120k" },
-  ];
+  useEffect(() => {
+    const fetchAnalysis = async () => {
+      const analysisId = searchParams.get('analysisId');
+      
+      if (!analysisId) {
+        toast({
+          title: "No Analysis Found",
+          description: "Please upload a resume first.",
+          variant: "destructive",
+        });
+        navigate('/upload');
+        return;
+      }
 
-  const improvements = [
-    "Add Python and Machine Learning skills to increase job matches by 15%",
-    "Include more quantifiable achievements in your experience section",
-    "Add certifications to strengthen your technical profile",
-  ];
+      try {
+        const { data, error } = await supabase
+          .from('analysis_results')
+          .select('*')
+          .eq('id', analysisId)
+          .single();
+
+        if (error) throw error;
+
+        setAnalysisData({
+          field_category: data.field_category,
+          overall_score: data.overall_score,
+          skills: data.skills as unknown as Skill[],
+          job_matches: data.job_matches as unknown as JobMatch[],
+          improvement_tips: data.improvement_tips as unknown as string[],
+        });
+      } catch (error: any) {
+        console.error('Error fetching analysis:', error);
+        toast({
+          title: "Error Loading Results",
+          description: "Failed to load analysis results. Please try again.",
+          variant: "destructive",
+        });
+        navigate('/upload');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAnalysis();
+  }, [searchParams, navigate, toast]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Navbar />
+        <main className="flex-grow pt-24 pb-16 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading analysis results...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!analysisData) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -39,26 +114,26 @@ const Results = () => {
               Resume Analysis Results
             </h1>
             <p className="text-lg text-muted-foreground">
-              Here's what our AI found in your resume
+              Field: <Badge variant="secondary" className="ml-2">{analysisData.field_category}</Badge>
             </p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6 mb-8">
             <Card className="shadow-soft animate-fade-in">
               <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-primary mb-2">85%</div>
+                <div className="text-3xl font-bold text-primary mb-2">{analysisData.overall_score}%</div>
                 <p className="text-sm text-muted-foreground">Overall Score</p>
               </CardContent>
             </Card>
             <Card className="shadow-soft animate-fade-in" style={{ animationDelay: "0.1s" }}>
               <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-secondary mb-2">12</div>
+                <div className="text-3xl font-bold text-secondary mb-2">{analysisData.skills.length}</div>
                 <p className="text-sm text-muted-foreground">Skills Detected</p>
               </CardContent>
             </Card>
             <Card className="shadow-soft animate-fade-in" style={{ animationDelay: "0.2s" }}>
               <CardContent className="p-6 text-center">
-                <div className="text-3xl font-bold text-accent mb-2">47</div>
+                <div className="text-3xl font-bold text-accent mb-2">{analysisData.job_matches.length}</div>
                 <p className="text-sm text-muted-foreground">Job Matches</p>
               </CardContent>
             </Card>
@@ -77,7 +152,7 @@ const Results = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {skills.map((skill, index) => (
+                {analysisData.skills.map((skill, index) => (
                   <div key={index} className="space-y-2">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-medium">{skill.name}</span>
@@ -93,69 +168,67 @@ const Results = () => {
             <Card className="shadow-medium animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                  <MessageSquare className="h-5 w-5 text-secondary" />
                   Top Job Matches
                 </CardTitle>
                 <CardDescription>
-                  Jobs that match your profile
+                  Positions that best match your profile
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {jobMatches.map((job, index) => (
-                  <div key={index} className="p-4 border border-border rounded-lg hover:shadow-soft transition-smooth">
+                {analysisData.job_matches.map((job, index) => (
+                  <div key={index} className="p-4 border rounded-lg hover:shadow-soft transition-shadow">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h3 className="font-semibold text-foreground">{job.title}</h3>
+                        <h4 className="font-semibold">{job.position}</h4>
                         <p className="text-sm text-muted-foreground">{job.company}</p>
                       </div>
-                      <Badge className="gradient-primary">{job.match}% Match</Badge>
+                      <Badge variant="secondary">{job.match}% Match</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">{job.salary}</p>
-                    <Button variant="outline" size="sm" className="mt-3 w-full">
+                    <div className="text-sm space-y-1">
+                      <p className="text-muted-foreground">{job.location}</p>
+                      <p className="font-medium text-primary">{job.salary}</p>
+                    </div>
+                    <Button className="w-full mt-3" size="sm">
                       Apply Now
                     </Button>
                   </div>
                 ))}
               </CardContent>
             </Card>
+
+            {/* Improvement Tips */}
+            <Card className="lg:col-span-2 shadow-medium animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Download className="h-5 w-5 text-accent" />
+                  Resume Improvement Tips
+                </CardTitle>
+                <CardDescription>
+                  AI-powered suggestions to enhance your resume
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-3">
+                  {analysisData.improvement_tips.map((tip, index) => (
+                    <li key={index} className="flex gap-3 p-3 rounded-lg bg-muted/50">
+                      <span className="font-semibold text-primary flex-shrink-0">{index + 1}.</span>
+                      <span className="text-sm">{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Improvement Tips */}
-          <Card className="shadow-medium mt-6 animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-primary" />
-                Resume Improvement Tips
-              </CardTitle>
-              <CardDescription>
-                AI-powered suggestions to enhance your resume
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                {improvements.map((tip, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <div className="w-6 h-6 gradient-primary rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-primary-foreground text-xs font-bold">{index + 1}</span>
-                    </div>
-                    <p className="text-sm text-foreground">{tip}</p>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 mt-8 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-            <Button size="lg" className="gradient-primary flex-1 shadow-medium">
-              <Download className="mr-2 h-5 w-5" />
+          <div className="flex gap-4 justify-center mt-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+            <Button size="lg" className="shadow-medium">
+              <Download className="mr-2 h-4 w-4" />
               Download Report
             </Button>
-            <Button asChild variant="outline" size="lg" className="flex-1">
-              <Link to="/chatbot">
-                <MessageSquare className="mr-2 h-5 w-5" />
-                Get AI Advice
-              </Link>
+            <Button size="lg" variant="outline" className="shadow-medium" onClick={() => navigate("/chatbot")}>
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Get AI Advice
             </Button>
           </div>
         </div>
