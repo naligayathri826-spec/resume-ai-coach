@@ -101,26 +101,77 @@ const Upload = () => {
     setIsUploading(true);
     setProgress(0);
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
+    try {
+      // Read file content
+      const fileReader = new FileReader();
+      
+      fileReader.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percentLoaded = Math.round((e.loaded / e.total) * 50);
+          setProgress(percentLoaded);
         }
-        return prev + 10;
-      });
-    }, 200);
+      };
 
-    // Simulate analysis
-    setTimeout(() => {
-      setIsUploading(false);
+      fileReader.onload = async (e) => {
+        const fileContent = e.target?.result as string;
+        setProgress(60);
+
+        try {
+          // Call the analyze-resume edge function
+          const { data, error } = await supabase.functions.invoke('analyze-resume', {
+            body: {
+              fileContent: fileContent,
+              fileName: file.name,
+              fileType: file.type
+            }
+          });
+
+          if (error) {
+            throw error;
+          }
+
+          setProgress(100);
+          toast({
+            title: "Analysis Complete!",
+            description: "Your resume has been analyzed successfully.",
+          });
+
+          setTimeout(() => {
+            navigate(`/results?analysisId=${data.analysisId}`);
+          }, 500);
+        } catch (error: any) {
+          console.error('Analysis error:', error);
+          setProgress(0);
+          toast({
+            title: "Analysis Failed",
+            description: error.message || "Failed to analyze resume. Please try again.",
+            variant: "destructive",
+          });
+          setIsUploading(false);
+        }
+      };
+
+      fileReader.onerror = () => {
+        toast({
+          title: "File Read Error",
+          description: "Failed to read the file. Please try again.",
+          variant: "destructive",
+        });
+        setIsUploading(false);
+        setProgress(0);
+      };
+
+      fileReader.readAsText(file);
+    } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
-        title: "Analysis complete!",
-        description: "Your resume has been analyzed successfully.",
+        title: "Upload Failed",
+        description: error.message || "Failed to upload resume. Please try again.",
+        variant: "destructive",
       });
-      navigate("/results");
-    }, 2500);
+      setIsUploading(false);
+      setProgress(0);
+    }
   };
 
   if (isLoading) {
