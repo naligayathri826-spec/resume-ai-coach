@@ -8,6 +8,10 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import * as pdfjsLib from 'pdfjs-dist';
+// @ts-ignore - Vite will handle worker asset URL
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker?url';
+import mammoth from 'mammoth/mammoth.browser';
 
 const Upload = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -102,75 +106,76 @@ const Upload = () => {
     setProgress(0);
 
     try {
-      // Read file content
-      const fileReader = new FileReader();
-      
-      fileReader.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const percentLoaded = Math.round((e.loaded / e.total) * 50);
-          setProgress(percentLoaded);
+      // Ensure PDF.js worker is configured
+      // @ts-ignore
+      pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+      let extractedText = "";
+
+      if (file.type === "application/pdf") {
+        setProgress(20);
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let text = "";
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          // @ts-ignore - pdfjs types
+          const strings = content.items.map((item: any) => (item.str ?? item.text ?? ""));
+          text += strings.join(" ") + "\n";
         }
-      };
+        extractedText = text;
+      } else if (file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+        setProgress(20);
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer as ArrayBuffer });
+        extractedText = result.value;
+      } else {
+        // Fallback for plain text files
+        extractedText = await file.text();
+      }
 
-      fileReader.onload = async (e) => {
-        const fileContent = e.target?.result as string;
-        setProgress(60);
+      // Remove null bytes that Postgres cannot store
+      extractedText = extractedText.replace(/\u0000/g, "").trim();
 
-        try {
-          // Call the analyze-resume edge function
-          const { data, error } = await supabase.functions.invoke('analyze-resume', {
-            body: {
-              fileContent: fileContent,
-              fileName: file.name,
-              fileType: file.type
-            }
-          });
+      if (!extractedText) {
+        throw new Error("Could not extract text from the file. Please upload a text-based resume or a selectable-text PDF/DOCX.");
+      }
 
-          if (error) {
-            throw error;
-          }
+      setProgress(60);
 
-          setProgress(100);
-          toast({
-            title: "Analysis Complete!",
-            description: "Your resume has been analyzed successfully.",
-          });
-
-          setTimeout(() => {
-            navigate(`/results?analysisId=${data.analysisId}`);
-          }, 500);
-        } catch (error: any) {
-          console.error('Analysis error:', error);
-          setProgress(0);
-          toast({
-            title: "Analysis Failed",
-            description: error.message || "Failed to analyze resume. Please try again.",
-            variant: "destructive",
-          });
-          setIsUploading(false);
+      // Call the analyze-resume backend function with extracted text
+      const { data, error } = await supabase.functions.invoke('analyze-resume', {
+        body: {
+          fileContent: extractedText,
+          fileName: file.name,
+          fileType: file.type
         }
-      };
+      });
 
-      fileReader.onerror = () => {
-        toast({
-          title: "File Read Error",
-          description: "Failed to read the file. Please try again.",
-          variant: "destructive",
-        });
-        setIsUploading(false);
-        setProgress(0);
-      };
+      if (error) {
+        throw error;
+      }
 
-      fileReader.readAsText(file);
-    } catch (error: any) {
-      console.error('Upload error:', error);
+      setProgress(100);
       toast({
-        title: "Upload Failed",
-        description: error.message || "Failed to upload resume. Please try again.",
+        title: "Analysis Complete!",
+        description: "Your resume has been analyzed successfully.",
+      });
+
+      setTimeout(() => {
+        navigate(`/results?analysisId=${data.analysisId}`);
+      }, 500);
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      setProgress(0);
+      toast({
+        title: "Analysis Failed",
+        description: error?.message || "Failed to analyze resume. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsUploading(false);
-      setProgress(0);
     }
   };
 
