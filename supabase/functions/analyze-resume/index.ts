@@ -90,8 +90,16 @@ Be specific to the detected field. For civil services resumes, focus on relevant
     }
 
     const aiResponse = await response.json();
-    const analysisResult = JSON.parse(aiResponse.choices[0].message.content);
-
+    
+    // Extract content and clean markdown code blocks if present
+    let content = aiResponse.choices[0].message.content;
+    
+    // Remove markdown code blocks (```json...``` or ```...```)
+    content = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    
+    console.log('Raw AI response:', content);
+    
+    const analysisResult = JSON.parse(content);
     console.log('AI Analysis completed:', analysisResult);
 
     // Store the resume in database
