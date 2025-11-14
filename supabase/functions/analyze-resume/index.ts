@@ -47,12 +47,15 @@ serve(async (req) => {
 
 Analyze the provided resume text and return a comprehensive analysis in JSON format with:
 1. field_category: Identify the primary field/sector (e.g., "IT & Software", "Civil Services", "Healthcare", etc.)
-2. overall_score: A score from 0-100 representing resume quality
-3. skills: Array of detected skills with name and proficiency level (0-100)
-4. job_matches: Array of 3-5 relevant job recommendations with company, position, match percentage (0-100), location, and salary
-5. improvement_tips: Array of 5-7 actionable improvement suggestions
+2. overall_score: A percentage score from 0-100 representing how strong this resume is for job applications
+3. strengths: Array of 3-5 specific things that are GOOD about this resume (what they did well)
+4. weaknesses: Array of 3-5 specific things that are NOT GOOD about this resume (what needs improvement)
+5. suggested_changes: Array of 5-7 detailed, actionable changes the candidate should make to improve their resume
+6. skills: Array of detected skills with name and proficiency level (0-100)
+7. job_matches: Array of 3-5 relevant job recommendations with company, position, match percentage (0-100), location, and salary
+8. improvement_tips: Array of 3-5 quick tips for immediate improvements
 
-Be specific to the detected field. For civil services resumes, focus on relevant experience and qualifications. For IT, focus on technical skills and projects.`;
+Be specific and constructive in your feedback. Focus on actionable insights that will help the candidate improve their resume and land better jobs.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -127,6 +130,9 @@ Be specific to the detected field. For civil services resumes, focus on relevant
         user_id: userId,
         field_category: analysisResult.field_category || 'General',
         overall_score: analysisResult.overall_score || 75,
+        strengths: analysisResult.strengths || [],
+        weaknesses: analysisResult.weaknesses || [],
+        suggested_changes: analysisResult.suggested_changes || [],
         skills: analysisResult.skills || [],
         job_matches: analysisResult.job_matches || [],
         improvement_tips: analysisResult.improvement_tips || []

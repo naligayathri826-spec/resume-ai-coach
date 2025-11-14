@@ -26,6 +26,9 @@ interface JobMatch {
 interface AnalysisData {
   field_category: string;
   overall_score: number;
+  strengths: string[];
+  weaknesses: string[];
+  suggested_changes: string[];
   skills: Skill[];
   job_matches: JobMatch[];
   improvement_tips: string[];
@@ -64,6 +67,9 @@ const Results = () => {
         setAnalysisData({
           field_category: data.field_category,
           overall_score: data.overall_score,
+          strengths: data.strengths as unknown as string[],
+          weaknesses: data.weaknesses as unknown as string[],
+          suggested_changes: data.suggested_changes as unknown as string[],
           skills: data.skills as unknown as Skill[],
           job_matches: data.job_matches as unknown as JobMatch[],
           improvement_tips: data.improvement_tips as unknown as string[],
@@ -135,6 +141,83 @@ const Results = () => {
               <CardContent className="p-6 text-center">
                 <div className="text-3xl font-bold text-accent mb-2">{analysisData.job_matches.length}</div>
                 <p className="text-sm text-muted-foreground">Job Matches</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-6 mb-8">
+            {/* Strengths - What's Good */}
+            <Card className="shadow-medium animate-fade-in-up border-green-200 dark:border-green-900">
+              <CardHeader className="bg-green-50 dark:bg-green-950">
+                <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  What's Good About Your Resume
+                </CardTitle>
+                <CardDescription>
+                  Strengths and positive aspects identified by AI
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ul className="space-y-3">
+                  {analysisData.strengths.map((strength, index) => (
+                    <li key={index} className="flex gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/50">
+                      <span className="text-green-600 dark:text-green-400 flex-shrink-0">✓</span>
+                      <span className="text-sm">{strength}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Weaknesses - What's Not Good */}
+            <Card className="shadow-medium animate-fade-in-up border-red-200 dark:border-red-900" style={{ animationDelay: "0.1s" }}>
+              <CardHeader className="bg-red-50 dark:bg-red-950">
+                <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  Areas That Need Improvement
+                </CardTitle>
+                <CardDescription>
+                  Weaknesses and aspects to work on
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ul className="space-y-3">
+                  {analysisData.weaknesses.map((weakness, index) => (
+                    <li key={index} className="flex gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/50">
+                      <span className="text-red-600 dark:text-red-400 flex-shrink-0">!</span>
+                      <span className="text-sm">{weakness}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* Suggested Changes */}
+            <Card className="lg:col-span-2 shadow-medium animate-fade-in-up border-blue-200 dark:border-blue-900" style={{ animationDelay: "0.2s" }}>
+              <CardHeader className="bg-blue-50 dark:bg-blue-950">
+                <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                  Suggested Changes to Make
+                </CardTitle>
+                <CardDescription>
+                  Detailed, actionable changes to improve your resume
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <ul className="space-y-3">
+                  {analysisData.suggested_changes.map((change, index) => (
+                    <li key={index} className="flex gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900">
+                      <span className="font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0">{index + 1}.</span>
+                      <span className="text-sm">{change}</span>
+                    </li>
+                  ))}
+                </ul>
               </CardContent>
             </Card>
           </div>
