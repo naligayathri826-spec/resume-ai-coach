@@ -14,19 +14,30 @@ serve(async (req) => {
   try {
     const { fileContent, fileName, fileType } = await req.json();
     
-    const authHeader = req.headers.get('Authorization')!;
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      throw new Error('Unauthorized');
+    // Get JWT token from Authorization header (already verified by Supabase)
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new Error('Missing authorization header');
     }
 
-    console.log('Analyzing resume for user:', user.id);
+    // Extract user ID from JWT token
+    const token = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const userId = payload.sub;
+
+    if (!userId) {
+      throw new Error('Invalid token');
+    }
+
+    console.log('Analyzing resume for user:', userId);
+
+    // Create Supabase client with service role for database operations
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    
 
     // Call Lovable AI to analyze the resume
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -87,7 +98,7 @@ Be specific to the detected field. For civil services resumes, focus on relevant
     const { data: resume, error: resumeError } = await supabaseClient
       .from('resumes')
       .insert({
-        user_id: user.id,
+        user_id: userId,
         file_name: fileName,
         file_type: fileType,
         file_content: fileContent
@@ -105,7 +116,7 @@ Be specific to the detected field. For civil services resumes, focus on relevant
       .from('analysis_results')
       .insert({
         resume_id: resume.id,
-        user_id: user.id,
+        user_id: userId,
         field_category: analysisResult.field_category || 'General',
         overall_score: analysisResult.overall_score || 75,
         skills: analysisResult.skills || [],
