@@ -24,7 +24,10 @@ export type Database = {
           overall_score: number
           resume_id: string
           skills: Json
+          strengths: Json | null
+          suggested_changes: Json | null
           user_id: string
+          weaknesses: Json | null
         }
         Insert: {
           analyzed_at?: string
@@ -35,7 +38,10 @@ export type Database = {
           overall_score: number
           resume_id: string
           skills: Json
+          strengths?: Json | null
+          suggested_changes?: Json | null
           user_id: string
+          weaknesses?: Json | null
         }
         Update: {
           analyzed_at?: string
@@ -46,7 +52,10 @@ export type Database = {
           overall_score?: number
           resume_id?: string
           skills?: Json
+          strengths?: Json | null
+          suggested_changes?: Json | null
           user_id?: string
+          weaknesses?: Json | null
         }
         Relationships: [
           {
