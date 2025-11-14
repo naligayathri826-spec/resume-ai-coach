@@ -14,7 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analysis_results: {
+        Row: {
+          analyzed_at: string
+          field_category: string
+          id: string
+          improvement_tips: Json
+          job_matches: Json
+          overall_score: number
+          resume_id: string
+          skills: Json
+          user_id: string
+        }
+        Insert: {
+          analyzed_at?: string
+          field_category: string
+          id?: string
+          improvement_tips: Json
+          job_matches: Json
+          overall_score: number
+          resume_id: string
+          skills: Json
+          user_id: string
+        }
+        Update: {
+          analyzed_at?: string
+          field_category?: string
+          id?: string
+          improvement_tips?: Json
+          job_matches?: Json
+          overall_score?: number
+          resume_id?: string
+          skills?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_results_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resumes: {
+        Row: {
+          file_content: string
+          file_name: string
+          file_type: string
+          id: string
+          uploaded_at: string
+          user_id: string
+        }
+        Insert: {
+          file_content: string
+          file_name: string
+          file_type: string
+          id?: string
+          uploaded_at?: string
+          user_id: string
+        }
+        Update: {
+          file_content?: string
+          file_name?: string
+          file_type?: string
+          id?: string
+          uploaded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
