@@ -1,21 +1,25 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { Clock } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const graceMessage = location.state?.message;
 
   useEffect(() => {
     // Check if user is already logged in
@@ -50,6 +54,9 @@ const Auth = () => {
 
       if (error) throw error;
 
+      // Reset grace period on successful signup
+      localStorage.removeItem("first_visit_timestamp");
+
       toast({
         title: "Success!",
         description: "Your account has been created. You can now sign in.",
@@ -76,6 +83,9 @@ const Auth = () => {
       });
 
       if (error) throw error;
+
+      // Reset grace period on successful signin
+      localStorage.removeItem("first_visit_timestamp");
 
       toast({
         title: "Welcome back!",
@@ -105,6 +115,12 @@ const Auth = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {graceMessage && (
+              <Alert className="mb-4 border-primary/50 bg-primary/10">
+                <Clock className="h-4 w-4" />
+                <AlertDescription>{graceMessage}</AlertDescription>
+              </Alert>
+            )}
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="signin">Sign In</TabsTrigger>

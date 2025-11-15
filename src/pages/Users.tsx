@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
 
 interface Profile {
   id: string;
@@ -15,6 +16,7 @@ interface Profile {
 }
 
 const Users = () => {
+  useAuthGracePeriod();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();

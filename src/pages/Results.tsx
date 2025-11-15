@@ -9,6 +9,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
 
 interface Skill {
   name: string;
@@ -35,6 +36,7 @@ interface AnalysisData {
 }
 
 const Results = () => {
+  useAuthGracePeriod();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
