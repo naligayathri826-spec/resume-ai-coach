@@ -8,12 +8,14 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
+import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
 import * as pdfjsLib from 'pdfjs-dist';
 // @ts-ignore - Vite will handle worker asset URL
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker?url';
 import mammoth from 'mammoth/mammoth.browser';
 
 const Upload = () => {
+  useAuthGracePeriod();
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);

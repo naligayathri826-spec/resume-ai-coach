@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Bot, User } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
 
 interface Message {
   id: number;
@@ -14,6 +15,7 @@ interface Message {
 }
 
 const Chatbot = () => {
+  useAuthGracePeriod();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,

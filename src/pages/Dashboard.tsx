@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
 import { Loader2, FileText, TrendingUp } from "lucide-react";
 
 interface AnalysisResult {
@@ -19,6 +20,7 @@ interface AnalysisResult {
 }
 
 const Dashboard = () => {
+  useAuthGracePeriod();
   const [analyses, setAnalyses] = useState<AnalysisResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();

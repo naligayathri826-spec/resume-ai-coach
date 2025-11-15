@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Search, Briefcase, MessageSquare, BarChart3, UserPlus, LogIn, Shield, Zap, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
 import heroImage from "@/assets/hero-image.jpg";
 import featureAnalysis from "@/assets/feature-analysis.jpg";
 import featureMatching from "@/assets/feature-matching.jpg";
@@ -11,6 +12,7 @@ import featureChatbot from "@/assets/feature-chatbot.jpg";
 import featureReports from "@/assets/feature-reports.jpg";
 
 const Index = () => {
+  useAuthGracePeriod();
   const features = [
     {
       icon: Search,
