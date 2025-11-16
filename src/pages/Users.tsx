@@ -13,6 +13,7 @@ interface Profile {
   id: string;
   email: string;
   created_at: string;
+  role?: string;
 }
 
 const Users = () => {
@@ -39,12 +40,22 @@ const Users = () => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select(`
+          *,
+          user_roles (
+            role
+          )
+        `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      setProfiles(data || []);
+      const profilesWithRoles = (data || []).map((profile: any) => ({
+        ...profile,
+        role: profile.user_roles?.[0]?.role || "user",
+      }));
+
+      setProfiles(profilesWithRoles);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -89,6 +100,7 @@ const Users = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead>Joined Date</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -96,6 +108,15 @@ const Users = () => {
                     {profiles.map((profile) => (
                       <TableRow key={profile.id}>
                         <TableCell className="font-medium">{profile.email}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            profile.role === 'admin' 
+                              ? 'bg-primary/10 text-primary' 
+                              : 'bg-secondary text-secondary-foreground'
+                          }`}>
+                            {profile.role}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-muted-foreground">
                           {formatDate(profile.created_at)}
                         </TableCell>
