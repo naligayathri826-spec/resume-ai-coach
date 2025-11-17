@@ -66,7 +66,6 @@ const Navbar = () => {
     { name: "Home", path: "/" },
     { name: "Upload Resume", path: "/upload", authRequired: true },
     { name: "Dashboard", path: "/dashboard", authRequired: true },
-    { name: "Users", path: "/users", authRequired: true },
     { name: "Chatbot", path: "/chatbot" },
   ];
 
