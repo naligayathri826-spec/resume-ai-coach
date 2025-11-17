@@ -73,27 +73,18 @@ export type Database = {
           created_at: string
           email: string
           id: string
-          subscription_expires_at: string | null
-          subscription_status: string | null
-          subscription_tier: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           email: string
           id: string
-          subscription_expires_at?: string | null
-          subscription_status?: string | null
-          subscription_tier?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           email?: string
           id?: string
-          subscription_expires_at?: string | null
-          subscription_status?: string | null
-          subscription_tier?: string | null
         }
         Relationships: []
       }
@@ -150,7 +141,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      check_upload_limit: { Args: { user_id_param: string }; Returns: number }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]

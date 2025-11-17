@@ -27,8 +27,8 @@ const Upload = () => {
   useEffect(() => {
     let mounted = true;
 
-    // Check if user is authenticated and check upload limit
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Check if user is authenticated
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       
       if (!session) {
@@ -38,39 +38,9 @@ const Upload = () => {
           variant: "destructive",
         });
         navigate("/auth", { replace: true });
-        return;
+      } else {
+        setIsLoading(false);
       }
-
-      // Check user's subscription status and upload count
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("subscription_tier, subscription_status")
-        .eq("id", session.user.id)
-        .single();
-
-      // Count user's resumes
-      const { count } = await supabase
-        .from("resumes")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", session.user.id);
-
-      // If user has free tier and has uploaded 6 or more resumes, redirect to pricing
-      if (
-        profile?.subscription_tier === "free" &&
-        profile?.subscription_status !== "active" &&
-        count !== null &&
-        count >= 6
-      ) {
-        toast({
-          title: "Upload Limit Reached",
-          description: "You've used all 6 free uploads. Please choose a subscription plan to continue.",
-          variant: "destructive",
-        });
-        navigate("/pricing", { replace: true });
-        return;
-      }
-
-      setIsLoading(false);
     });
 
     // Listen for auth changes
@@ -131,39 +101,6 @@ const Upload = () => {
         description: "Please select a resume file first.",
         variant: "destructive",
       });
-      return;
-    }
-
-    // Double-check upload limit before proceeding
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("subscription_tier, subscription_status")
-      .eq("id", session.user.id)
-      .single();
-
-    const { count } = await supabase
-      .from("resumes")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", session.user.id);
-
-    if (
-      profile?.subscription_tier === "free" &&
-      profile?.subscription_status !== "active" &&
-      count !== null &&
-      count >= 6
-    ) {
-      toast({
-        title: "Upload Limit Reached",
-        description: "Please subscribe to continue uploading resumes.",
-        variant: "destructive",
-      });
-      navigate("/pricing");
       return;
     }
 
