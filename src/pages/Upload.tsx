@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Upload as UploadIcon, FileText, CheckCircle } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
@@ -184,7 +183,6 @@ const Upload = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
-        <Navbar />
         <main className="flex-grow flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -198,8 +196,6 @@ const Upload = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
-
       <main className="flex-grow pt-24 pb-16">
         <div className="container mx-auto px-4 max-w-3xl">
           <div className="text-center mb-8 animate-fade-in-up">

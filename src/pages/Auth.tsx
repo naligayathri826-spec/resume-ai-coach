@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Clock } from "lucide-react";
 
@@ -56,7 +55,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-secondary/20">
-      <Navbar />
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">

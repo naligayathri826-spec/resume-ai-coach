@@ -1,0 +1,188 @@
+import { Home, Upload, LayoutDashboard, MessageSquare, LogOut } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User } from "@supabase/supabase-js";
+import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarHeader,
+  SidebarFooter,
+  useSidebar,
+} from "@/components/ui/sidebar";
+
+const navItems = [
+  { title: "Home", url: "/", icon: Home, authRequired: false },
+  { title: "Upload Resume", url: "/upload", icon: Upload, authRequired: true },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, authRequired: true },
+  { title: "Chatbot", url: "/chatbot", icon: MessageSquare, authRequired: false },
+];
+
+export function AppSidebar() {
+  const { state } = useSidebar();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [user, setUser] = useState<User | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchUserProfile(session.user.id);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 0);
+      } else {
+        setAvatarUrl(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchUserProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", userId)
+      .single();
+    
+    if (data) {
+      setAvatarUrl(data.avatar_url);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setAvatarUrl(null);
+    navigate("/");
+    toast({
+      title: "Signed out",
+      description: "You have been successfully signed out.",
+    });
+  };
+
+  const handleNavClick = (item: typeof navItems[0], e: React.MouseEvent) => {
+    if (item.authRequired && !user) {
+      e.preventDefault();
+      navigate("/auth");
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to access this feature.",
+      });
+    }
+  };
+
+  const isCollapsed = state === "collapsed";
+
+  return (
+    <Sidebar collapsible="icon" className="border-r border-border">
+      <SidebarHeader className="border-b border-border p-4">
+        <Link to="/" className="flex items-center space-x-2">
+          <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center flex-shrink-0">
+            <span className="text-primary-foreground font-bold text-sm">AI</span>
+          </div>
+          {!isCollapsed && (
+            <span className="font-bold text-lg text-foreground">Resume Analyzer</span>
+          )}
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                const isActive = location.pathname === item.url;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                    >
+                      <Link
+                        to={item.url}
+                        onClick={(e) => handleNavClick(item, e)}
+                        className="flex items-center gap-3"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-border p-4">
+        {user ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <AvatarImage src={avatarUrl || undefined} />
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  {user.email?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{user.email}</p>
+                </div>
+              )}
+            </div>
+            {!isCollapsed && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSignOut}
+                className="w-full"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            )}
+          </div>
+        ) : (
+          <Button
+            asChild
+            variant="default"
+            size={isCollapsed ? "icon" : "sm"}
+            className="w-full"
+          >
+            <Link to="/auth">
+              {isCollapsed ? (
+                <LogOut className="h-4 w-4" />
+              ) : (
+                <>Sign In</>
+              )}
+            </Link>
+          </Button>
+        )}
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
