@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Search, Briefcase, MessageSquare, BarChart3, UserPlus, LogIn, Shield, Zap, Clock } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
 import heroImage from "@/assets/hero-image.jpg";
@@ -42,7 +41,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
-      <Navbar />
 
       {/* Hero Section */}
       <section className="pt-24 pb-16 md:pt-32 md:pb-24 relative overflow-hidden">
