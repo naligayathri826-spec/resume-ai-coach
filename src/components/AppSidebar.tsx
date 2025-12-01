@@ -1,4 +1,4 @@
-import { Home, Upload, LayoutDashboard, MessageSquare, LogOut } from "lucide-react";
+import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +26,7 @@ const navItems = [
   { title: "Upload Resume", url: "/upload", icon: Upload, authRequired: true },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, authRequired: true },
   { title: "Chatbot", url: "/chatbot", icon: MessageSquare, authRequired: false },
+  { title: "Users", url: "/users", icon: Users, authRequired: true },
 ];
 
 export function AppSidebar() {
