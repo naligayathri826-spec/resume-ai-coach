@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import Footer from "@/components/Footer";
@@ -29,11 +28,16 @@ const signUpSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const resetPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const graceMessage = location.state?.message;
 
   const signInForm = useForm<z.infer<typeof signInSchema>>({
@@ -50,6 +54,13 @@ const Auth = () => {
       email: "",
       password: "",
       confirmPassword: "",
+    },
+  });
+
+  const resetPasswordForm = useForm<z.infer<typeof resetPasswordSchema>>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      email: "",
     },
   });
 
@@ -89,7 +100,6 @@ const Auth = () => {
         });
       }
 
-      // Reset grace period on successful signin
       localStorage.removeItem("first_visit_timestamp");
     } catch (error: any) {
       toast({
@@ -150,7 +160,7 @@ const Auth = () => {
       } else {
         toast({
           title: "Success",
-          description: "Account created! Please check your email for verification.",
+          description: "Account created successfully! You can now sign in.",
         });
         localStorage.removeItem("first_visit_timestamp");
       }
@@ -164,6 +174,100 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  const onResetPassword = async (values: z.infer<typeof resetPasswordSchema>) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Password reset link sent to your email!",
+        });
+        setShowForgotPassword(false);
+        resetPasswordForm.reset();
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "Failed to send reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-secondary/20">
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="space-y-1">
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-primary"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                </div>
+              </div>
+              <CardTitle className="text-2xl text-center">Reset Password</CardTitle>
+              <CardDescription className="text-center">
+                Enter your email address and we'll send you a reset link
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Form {...resetPasswordForm}>
+                <form onSubmit={resetPasswordForm.handleSubmit(onResetPassword)} className="space-y-4">
+                  <FormField
+                    control={resetPasswordForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input placeholder="your@email.com" type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                </form>
+              </Form>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={() => setShowForgotPassword(false)}
+              >
+                Back to Sign In
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-background to-secondary/20">
@@ -238,6 +342,16 @@ const Auth = () => {
                     </Button>
                   </form>
                 </Form>
+
+                <div className="text-center">
+                  <Button
+                    variant="link"
+                    className="text-sm text-muted-foreground"
+                    onClick={() => setShowForgotPassword(true)}
+                  >
+                    Forgot your password?
+                  </Button>
+                </div>
 
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
