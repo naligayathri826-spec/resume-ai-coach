@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Send, Bot, User } from "lucide-react";
 import Footer from "@/components/Footer";
 import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
+import { useToast } from "@/hooks/use-toast";
 
 interface Message {
   id: number;
@@ -13,8 +14,13 @@ interface Message {
   timestamp: Date;
 }
 
+type ChatMessage = { role: "user" | "assistant"; content: string };
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
 const Chatbot = () => {
   useAuthGracePeriod();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -35,8 +41,62 @@ const Chatbot = () => {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const streamChat = async (chatMessages: ChatMessage[], onDelta: (text: string) => void, onDone: () => void) => {
+    const resp = await fetch(CHAT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({ messages: chatMessages }),
+    });
+
+    if (!resp.ok || !resp.body) {
+      const errorData = await resp.json().catch(() => ({}));
+      throw new Error(errorData.error || "Failed to start stream");
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    let textBuffer = "";
+    let streamDone = false;
+
+    while (!streamDone) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      textBuffer += decoder.decode(value, { stream: true });
+
+      let newlineIndex: number;
+      while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+        let line = textBuffer.slice(0, newlineIndex);
+        textBuffer = textBuffer.slice(newlineIndex + 1);
+
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (line.startsWith(":") || line.trim() === "") continue;
+        if (!line.startsWith("data: ")) continue;
+
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") {
+          streamDone = true;
+          break;
+        }
+
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+          if (content) onDelta(content);
+        } catch {
+          textBuffer = line + "\n" + textBuffer;
+          break;
+        }
+      }
+    }
+
+    onDone();
+  };
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || isTyping) return;
 
     const userMessage: Message = {
       id: messages.length + 1,
@@ -45,29 +105,58 @@ const Chatbot = () => {
       timestamp: new Date(),
     };
 
-    setMessages([...messages, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setInputValue("");
     setIsTyping(true);
 
-    // Simulate bot response
-    setTimeout(() => {
-      const responses = [
-        "That's a great question! Based on your resume, I'd recommend focusing on quantifiable achievements. For example, instead of saying 'Managed a team', try 'Led a team of 5 developers to deliver 3 major projects ahead of schedule.'",
-        "To improve your resume, consider adding more specific technical skills that are in demand. Based on current job market trends, skills like Python, Machine Learning, and Cloud platforms are highly valued.",
-        "Your experience section looks good! I'd suggest reorganizing it to put the most relevant experience first, and make sure each bullet point starts with a strong action verb.",
-        "For better job matches, try incorporating keywords from job descriptions you're interested in. This helps both ATS systems and recruiters find your resume.",
-      ];
+    // Convert messages to chat format (excluding the initial bot greeting)
+    const chatHistory: ChatMessage[] = newMessages
+      .slice(1) // Skip initial greeting
+      .map((msg) => ({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.text,
+      }));
 
-      const botMessage: Message = {
-        id: messages.length + 2,
-        text: responses[Math.floor(Math.random() * responses.length)],
-        sender: "bot",
-        timestamp: new Date(),
-      };
+    let assistantText = "";
+    const botMessageId = newMessages.length + 1;
 
-      setMessages((prev) => [...prev, botMessage]);
+    try {
+      await streamChat(
+        chatHistory,
+        (chunk) => {
+          assistantText += chunk;
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg?.sender === "bot" && lastMsg.id === botMessageId) {
+              return prev.map((m) =>
+                m.id === botMessageId ? { ...m, text: assistantText } : m
+              );
+            }
+            return [
+              ...prev,
+              {
+                id: botMessageId,
+                text: assistantText,
+                sender: "bot",
+                timestamp: new Date(),
+              },
+            ];
+          });
+        },
+        () => {
+          setIsTyping(false);
+        }
+      );
+    } catch (error: any) {
+      console.error("Chat error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to get response. Please try again.",
+        variant: "destructive",
+      });
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -138,7 +227,7 @@ const Chatbot = () => {
                             : "bg-card border border-border"
                         }`}
                       >
-                        <p className="text-sm">{message.text}</p>
+                        <p className="text-sm whitespace-pre-wrap">{message.text}</p>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {message.timestamp.toLocaleTimeString([], {
@@ -149,7 +238,7 @@ const Chatbot = () => {
                     </div>
                   </div>
                 ))}
-                {isTyping && (
+                {isTyping && messages[messages.length - 1]?.sender === "user" && (
                   <div className="flex gap-3 animate-fade-in">
                     <div className="w-8 h-8 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
                       <Bot className="h-5 w-5 text-primary-foreground" />
@@ -175,6 +264,7 @@ const Chatbot = () => {
                     size="sm"
                     onClick={() => setInputValue(question)}
                     className="text-xs"
+                    disabled={isTyping}
                   >
                     {question}
                   </Button>
