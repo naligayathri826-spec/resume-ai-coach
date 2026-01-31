@@ -1,8 +1,8 @@
-import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut } from "lucide-react";
+import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut, User } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ const navItems = [
   { title: "Home", url: "/", icon: Home, authRequired: false },
   { title: "Upload Resume", url: "/upload", icon: Upload, authRequired: true },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, authRequired: true },
-  { title: "Chatbot", url: "/chatbot", icon: MessageSquare, authRequired: false },
+  { title: "AI Coach", url: "/chatbot", icon: MessageSquare, authRequired: false },
   { title: "Users", url: "/users", icon: Users, authRequired: true },
 ];
 
@@ -34,7 +34,7 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export function AppSidebar() {
             <span className="text-primary-foreground font-bold text-sm">AI</span>
           </div>
           {!isCollapsed && (
-            <span className="font-bold text-lg text-foreground">Resume Analyzer</span>
+            <span className="font-bold text-lg text-foreground">ResumeAI</span>
           )}
         </Link>
       </SidebarHeader>
@@ -141,8 +141,13 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-border p-4">
         {user ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
+          <div className="space-y-3">
+            <Link
+              to="/profile"
+              className={`flex items-center gap-3 p-2 rounded-lg hover:bg-muted transition-colors ${
+                location.pathname === "/profile" ? "bg-muted" : ""
+              }`}
+            >
               <Avatar className="h-8 w-8 flex-shrink-0">
                 <AvatarImage src={avatarUrl || undefined} />
                 <AvatarFallback className="bg-primary text-primary-foreground">
@@ -152,9 +157,10 @@ export function AppSidebar() {
               {!isCollapsed && (
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{user.email}</p>
+                  <p className="text-xs text-muted-foreground">View profile</p>
                 </div>
               )}
-            </div>
+            </Link>
             {!isCollapsed && (
               <Button
                 variant="outline"
@@ -172,11 +178,11 @@ export function AppSidebar() {
             asChild
             variant="default"
             size={isCollapsed ? "icon" : "sm"}
-            className="w-full"
+            className="w-full gradient-primary"
           >
             <Link to="/auth">
               {isCollapsed ? (
-                <LogOut className="h-4 w-4" />
+                <User className="h-4 w-4" />
               ) : (
                 <>Sign In</>
               )}
