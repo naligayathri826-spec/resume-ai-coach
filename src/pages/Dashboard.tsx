@@ -3,10 +3,33 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Footer from "@/components/Footer";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
-import { Loader2, FileText, TrendingUp } from "lucide-react";
+import {
+  Loader2,
+  FileText,
+  TrendingUp,
+  Target,
+  Calendar,
+  ArrowUpRight,
+  BarChart3,
+  Award,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 interface AnalysisResult {
   id: string;
@@ -27,9 +50,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
-        navigate('/auth');
+        navigate("/auth");
         return;
       }
       fetchAnalyses();
@@ -41,21 +66,23 @@ const Dashboard = () => {
   const fetchAnalyses = async () => {
     try {
       const { data, error } = await supabase
-        .from('analysis_results')
-        .select(`
+        .from("analysis_results")
+        .select(
+          `
           id,
           analyzed_at,
           overall_score,
           field_category,
           resume:resumes(file_name)
-        `)
-        .order('analyzed_at', { ascending: false });
+        `
+        )
+        .order("analyzed_at", { ascending: false });
 
       if (error) throw error;
 
       setAnalyses(data as any);
     } catch (error) {
-      console.error('Error fetching analyses:', error);
+      console.error("Error fetching analyses:", error);
       toast({
         title: "Error",
         description: "Failed to load your analysis history",
@@ -71,80 +98,325 @@ const Dashboard = () => {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+    if (score >= 80) return "text-green-500";
+    if (score >= 60) return "text-yellow-500";
+    return "text-red-500";
   };
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <main className="flex-1 container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-2">Resume Analysis Dashboard</h1>
-            <p className="text-muted-foreground">View all your resume analysis results</p>
-          </div>
+  const getScoreBg = (score: number) => {
+    if (score >= 80) return "bg-green-500/10";
+    if (score >= 60) return "bg-yellow-500/10";
+    return "bg-red-500/10";
+  };
 
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin" />
+  // Analytics data
+  const avgScore = analyses.length > 0
+    ? Math.round(analyses.reduce((acc, a) => acc + a.overall_score, 0) / analyses.length)
+    : 0;
+
+  const highestScore = analyses.length > 0
+    ? Math.max(...analyses.map((a) => a.overall_score))
+    : 0;
+
+  const scoreData = analyses
+    .slice(0, 10)
+    .reverse()
+    .map((a, i) => ({
+      name: `#${i + 1}`,
+      score: a.overall_score,
+    }));
+
+  const categoryData = analyses.reduce((acc: any[], a) => {
+    const existing = acc.find((item) => item.name === a.field_category);
+    if (existing) {
+      existing.value++;
+    } else {
+      acc.push({ name: a.field_category, value: 1 });
+    }
+    return acc;
+  }, []);
+
+  const COLORS = ["hsl(220, 90%, 56%)", "hsl(220, 44%, 28%)", "hsl(220, 60%, 70%)", "hsl(220, 80%, 45%)"];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-7xl mx-auto"
+      >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
+            <p className="text-muted-foreground">Track your resume analysis progress</p>
+          </div>
+          <Button onClick={() => navigate("/upload")} className="gradient-primary">
+            <FileText className="h-4 w-4 mr-2" /> Analyze New Resume
+          </Button>
+        </div>
+
+        {analyses.length === 0 ? (
+          <Card className="shadow-large">
+            <CardContent className="py-16 text-center">
+              <div className="h-20 w-20 rounded-full gradient-primary mx-auto mb-6 flex items-center justify-center">
+                <FileText className="h-10 w-10 text-primary-foreground" />
+              </div>
+              <h2 className="text-2xl font-semibold mb-2">No Analyses Yet</h2>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                Upload your first resume to get AI-powered analysis and start tracking your progress
+              </p>
+              <Button onClick={() => navigate("/upload")} className="gradient-primary">
+                Upload Resume
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <Card className="shadow-soft hover:shadow-medium transition-smooth">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center">
+                        <FileText className="h-6 w-6 text-primary-foreground" />
+                      </div>
+                      <ArrowUpRight className="h-4 w-4 text-green-500" />
+                    </div>
+                    <p className="text-3xl font-bold">{analyses.length}</p>
+                    <p className="text-sm text-muted-foreground">Total Analyses</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <Card className="shadow-soft hover:shadow-medium transition-smooth">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+                        <Target className="h-6 w-6 text-green-500" />
+                      </div>
+                    </div>
+                    <p className={`text-3xl font-bold ${getScoreColor(avgScore)}`}>{avgScore}</p>
+                    <p className="text-sm text-muted-foreground">Average Score</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Card className="shadow-soft hover:shadow-medium transition-smooth">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="h-12 w-12 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                        <Award className="h-6 w-6 text-yellow-500" />
+                      </div>
+                    </div>
+                    <p className="text-3xl font-bold text-green-500">{highestScore}</p>
+                    <p className="text-sm text-muted-foreground">Highest Score</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <Card className="shadow-soft hover:shadow-medium transition-smooth">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <BarChart3 className="h-6 w-6 text-primary" />
+                      </div>
+                    </div>
+                    <p className="text-3xl font-bold">{categoryData.length}</p>
+                    <p className="text-sm text-muted-foreground">Categories</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
-          ) : analyses.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                <h2 className="text-2xl font-semibold mb-2">No Analyses Yet</h2>
-                <p className="text-muted-foreground mb-4">
-                  Upload your first resume to get started with AI-powered analysis
-                </p>
-                <Button onClick={() => navigate('/upload')}>
-                  Upload Resume
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {analyses.map((analysis) => (
-                <Card key={analysis.id} className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => viewAnalysis(analysis.id)}>
+
+            {/* Charts */}
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <Card className="shadow-soft">
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span className="truncate">{analysis.resume?.file_name || 'Resume'}</span>
-                      <TrendingUp className="h-5 w-5 text-primary" />
-                    </CardTitle>
-                    <CardDescription>
-                      {new Date(analysis.analyzed_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </CardDescription>
+                    <CardTitle className="text-lg">Score Trend</CardTitle>
+                    <CardDescription>Your resume scores over time</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-3">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Field</p>
-                        <p className="font-medium">{analysis.field_category}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Overall Score</p>
-                        <p className={`text-3xl font-bold ${getScoreColor(analysis.overall_score)}`}>
-                          {analysis.overall_score}/100
-                        </p>
-                      </div>
-                      <Button variant="outline" className="w-full" onClick={() => viewAnalysis(analysis.id)}>
-                        View Details
-                      </Button>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={scoreData}>
+                          <defs>
+                            <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(220, 90%, 56%)" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="hsl(220, 90%, 56%)" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis dataKey="name" className="text-xs" />
+                          <YAxis domain={[0, 100]} className="text-xs" />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--card))",
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: "8px",
+                            }}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="score"
+                            stroke="hsl(220, 90%, 56%)"
+                            fill="url(#scoreGradient)"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <Card className="shadow-soft">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Categories</CardTitle>
+                    <CardDescription>Analysis by field category</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={categoryData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={60}
+                            outerRadius={80}
+                            paddingAngle={5}
+                            dataKey="value"
+                          >
+                            {categoryData.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: "hsl(var(--card))",
+                              border: "1px solid hsl(var(--border))",
+                              borderRadius: "8px",
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-4 mt-4">
+                      {categoryData.map((item, index) => (
+                        <div key={item.name} className="flex items-center gap-2 text-sm">
+                          <div
+                            className="h-3 w-3 rounded-full"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <span>{item.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
-          )}
-        </div>
-      </main>
-      <Footer />
+
+            {/* Recent Analyses */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+            >
+              <Card className="shadow-soft">
+                <CardHeader>
+                  <CardTitle className="text-lg">Recent Analyses</CardTitle>
+                  <CardDescription>Your latest resume analysis results</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {analyses.slice(0, 6).map((analysis, index) => (
+                      <motion.div
+                        key={analysis.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.8 + index * 0.05 }}
+                      >
+                        <Card
+                          className="cursor-pointer hover:shadow-medium transition-smooth border-border"
+                          onClick={() => viewAnalysis(analysis.id)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">
+                                  {analysis.resume?.file_name || "Resume"}
+                                </p>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {new Date(analysis.analyzed_at).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div
+                                className={`px-3 py-1 rounded-full text-sm font-bold ${getScoreBg(
+                                  analysis.overall_score
+                                )} ${getScoreColor(analysis.overall_score)}`}
+                              >
+                                {analysis.overall_score}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs bg-muted px-2 py-1 rounded-full">
+                                {analysis.field_category}
+                              </span>
+                              <Button variant="ghost" size="sm" className="text-xs">
+                                View <ArrowUpRight className="h-3 w-3 ml-1" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        )}
+      </motion.div>
     </div>
   );
 };
