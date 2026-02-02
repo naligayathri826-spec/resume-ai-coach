@@ -17,8 +17,6 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -30,12 +28,30 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { WeeklyProgress } from "@/components/dashboard/WeeklyProgress";
+import { SkillBreakdown } from "@/components/dashboard/SkillBreakdown";
+import { JobMatchWidget } from "@/components/dashboard/JobMatchWidget";
+
+interface Skill {
+  name: string;
+  level: number;
+}
+
+interface JobMatch {
+  company: string;
+  position: string;
+  match: number;
+  location: string;
+  salary: string;
+}
 
 interface AnalysisResult {
   id: string;
   analyzed_at: string;
   overall_score: number;
   field_category: string;
+  skills?: Skill[];
+  job_matches?: JobMatch[];
   resume: {
     file_name: string;
   };
@@ -73,12 +89,16 @@ const Dashboard = () => {
           analyzed_at,
           overall_score,
           field_category,
+          skills,
+          job_matches,
           resume:resumes(file_name)
         `
         )
         .order("analyzed_at", { ascending: false });
 
       if (error) throw error;
+
+      setAnalyses(data as any);
 
       setAnalyses(data as any);
     } catch (error) {
@@ -135,6 +155,52 @@ const Dashboard = () => {
     }
     return acc;
   }, []);
+
+  // Aggregate all skills across analyses
+  const allSkills = analyses.reduce((acc: Skill[], a) => {
+    if (a.skills && Array.isArray(a.skills)) {
+      (a.skills as Skill[]).forEach((skill) => {
+        const existing = acc.find((s) => s.name === skill.name);
+        if (existing) {
+          existing.level = Math.max(existing.level, skill.level);
+        } else {
+          acc.push({ ...skill });
+        }
+      });
+    }
+    return acc;
+  }, []);
+
+  // Aggregate all job matches
+  const allJobMatches = analyses.reduce((acc: JobMatch[], a) => {
+    if (a.job_matches && Array.isArray(a.job_matches)) {
+      (a.job_matches as JobMatch[]).forEach((job) => {
+        if (!acc.find((j) => j.position === job.position && j.company === job.company)) {
+          acc.push(job);
+        }
+      });
+    }
+    return acc;
+  }, []).slice(0, 5);
+
+  // Weekly stats
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+  const thisWeekAnalyses = analyses.filter(
+    (a) => new Date(a.analyzed_at) >= oneWeekAgo
+  );
+  const lastWeekAnalyses = analyses.filter(
+    (a) => new Date(a.analyzed_at) >= twoWeeksAgo && new Date(a.analyzed_at) < oneWeekAgo
+  );
+
+  const thisWeekAvg = thisWeekAnalyses.length > 0
+    ? Math.round(thisWeekAnalyses.reduce((acc, a) => acc + a.overall_score, 0) / thisWeekAnalyses.length)
+    : avgScore;
+  const lastWeekAvg = lastWeekAnalyses.length > 0
+    ? Math.round(lastWeekAnalyses.reduce((acc, a) => acc + a.overall_score, 0) / lastWeekAnalyses.length)
+    : avgScore;
 
   const COLORS = ["hsl(220, 90%, 56%)", "hsl(220, 44%, 28%)", "hsl(220, 60%, 70%)", "hsl(220, 80%, 45%)"];
 
@@ -352,6 +418,39 @@ const Dashboard = () => {
                     </div>
                   </CardContent>
                 </Card>
+              </motion.div>
+            </div>
+
+            {/* New Widgets Row */}
+            <div className="grid md:grid-cols-3 gap-6 mb-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.65 }}
+              >
+                <WeeklyProgress
+                  currentWeekScore={thisWeekAvg}
+                  previousWeekScore={lastWeekAvg}
+                  weeklyGoal={85}
+                  resumesThisWeek={thisWeekAnalyses.length}
+                  weeklyTarget={3}
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <SkillBreakdown skills={allSkills} />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.75 }}
+              >
+                <JobMatchWidget jobs={allJobMatches} />
               </motion.div>
             </div>
 

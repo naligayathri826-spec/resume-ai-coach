@@ -145,6 +145,39 @@ Be specific and constructive in your feedback. Focus on actionable insights that
       throw analysisError;
     }
 
+    // Send email notification (fire and forget - don't block on this)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    try {
+      // Get user email from profiles
+      const { data: profile } = await supabaseClient
+        .from('profiles')
+        .select('email')
+        .eq('id', userId)
+        .single();
+
+      if (profile?.email) {
+        const analysisUrl = `${supabaseUrl.replace('.supabase.co', '.lovable.app')}/results?analysisId=${analysis.id}`;
+        
+        fetch(`${supabaseUrl}/functions/v1/send-analysis-email`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({
+            email: profile.email,
+            resumeName: fileName,
+            overallScore: analysisResult.overall_score || 75,
+            fieldCategory: analysisResult.field_category || 'General',
+            topStrengths: analysisResult.strengths?.slice(0, 3) || [],
+            analysisUrl,
+          }),
+        }).catch((err) => console.log('Email notification failed (non-blocking):', err));
+      }
+    } catch (emailErr) {
+      console.log('Email notification skipped:', emailErr);
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,
