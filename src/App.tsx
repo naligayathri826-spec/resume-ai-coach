@@ -16,6 +16,12 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
 import Profile from "./pages/Profile";
+import Pricing from "./pages/Pricing";
+import ModeSelection from "./pages/ModeSelection";
+import JobsList from "./pages/hiring/JobsList";
+import JobIntake from "./pages/hiring/JobIntake";
+import CandidateUpload from "./pages/hiring/CandidateUpload";
+import RecruiterDashboard from "./pages/hiring/RecruiterDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +54,12 @@ const App = () => (
                     <Route path="/auth" element={<Auth />} />
                     <Route path="/users" element={<Users />} />
                     <Route path="/profile" element={<Profile />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/mode-selection" element={<ModeSelection />} />
+                    <Route path="/hiring/jobs" element={<JobsList />} />
+                    <Route path="/hiring/new" element={<JobIntake />} />
+                    <Route path="/hiring/candidates/:jobId" element={<CandidateUpload />} />
+                    <Route path="/hiring/dashboard/:jobId" element={<RecruiterDashboard />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

@@ -2,3 +2,12 @@ project_id = "brfnvifwzdnicuxmhwvn"
 
 [functions.analyze-resume]
 verify_jwt = true
+
+[functions.analyze-candidates]
+verify_jwt = true
+
+[functions.send-analysis-email]
+verify_jwt = false
+
+[functions.chat]
+verify_jwt = true
