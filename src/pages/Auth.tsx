@@ -66,16 +66,37 @@ const Auth = () => {
 
   useEffect(() => {
     // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        navigate("/upload");
+        // Check if user has selected a mode
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("user_mode")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (profile?.user_mode) {
+          navigate(profile.user_mode === "hiring" ? "/hiring/jobs" : "/upload");
+        } else {
+          navigate("/mode-selection");
+        }
       }
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        navigate("/upload");
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("user_mode")
+          .eq("id", session.user.id)
+          .single();
+        
+        if (profile?.user_mode) {
+          navigate(profile.user_mode === "hiring" ? "/hiring/jobs" : "/upload");
+        } else {
+          navigate("/mode-selection");
+        }
       }
     });
 

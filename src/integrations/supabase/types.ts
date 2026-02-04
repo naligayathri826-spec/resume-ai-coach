@@ -67,6 +67,74 @@ export type Database = {
           },
         ]
       }
+      candidates: {
+        Row: {
+          ai_reasoning: string | null
+          ai_score: number | null
+          analyzed_at: string | null
+          candidate_email: string | null
+          candidate_name: string | null
+          created_at: string
+          education: string | null
+          experience_match_percentage: number | null
+          file_name: string
+          fit_category: string | null
+          id: string
+          job_id: string
+          parsed_skills: Json | null
+          resume_content: string
+          skill_match_percentage: number | null
+          user_id: string
+          years_experience: number | null
+        }
+        Insert: {
+          ai_reasoning?: string | null
+          ai_score?: number | null
+          analyzed_at?: string | null
+          candidate_email?: string | null
+          candidate_name?: string | null
+          created_at?: string
+          education?: string | null
+          experience_match_percentage?: number | null
+          file_name: string
+          fit_category?: string | null
+          id?: string
+          job_id: string
+          parsed_skills?: Json | null
+          resume_content: string
+          skill_match_percentage?: number | null
+          user_id: string
+          years_experience?: number | null
+        }
+        Update: {
+          ai_reasoning?: string | null
+          ai_score?: number | null
+          analyzed_at?: string | null
+          candidate_email?: string | null
+          candidate_name?: string | null
+          created_at?: string
+          education?: string | null
+          experience_match_percentage?: number | null
+          file_name?: string
+          fit_category?: string | null
+          id?: string
+          job_id?: string
+          parsed_skills?: Json | null
+          resume_content?: string
+          skill_match_percentage?: number | null
+          user_id?: string
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "hiring_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversations: {
         Row: {
           created_at: string
@@ -126,6 +194,72 @@ export type Database = {
           },
         ]
       }
+      hiring_jobs: {
+        Row: {
+          company_name: string
+          created_at: string
+          cultural_priorities: Json | null
+          deal_breakers: Json | null
+          education_requirements: string | null
+          id: string
+          industry: string | null
+          job_title: string
+          location: string | null
+          nice_to_have_skills: Json | null
+          remote_allowed: boolean | null
+          required_skills: Json | null
+          salary_max: number | null
+          salary_min: number | null
+          seniority_level: string | null
+          updated_at: string
+          user_id: string
+          years_experience_max: number | null
+          years_experience_min: number | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          cultural_priorities?: Json | null
+          deal_breakers?: Json | null
+          education_requirements?: string | null
+          id?: string
+          industry?: string | null
+          job_title: string
+          location?: string | null
+          nice_to_have_skills?: Json | null
+          remote_allowed?: boolean | null
+          required_skills?: Json | null
+          salary_max?: number | null
+          salary_min?: number | null
+          seniority_level?: string | null
+          updated_at?: string
+          user_id: string
+          years_experience_max?: number | null
+          years_experience_min?: number | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          cultural_priorities?: Json | null
+          deal_breakers?: Json | null
+          education_requirements?: string | null
+          id?: string
+          industry?: string | null
+          job_title?: string
+          location?: string | null
+          nice_to_have_skills?: Json | null
+          remote_allowed?: boolean | null
+          required_skills?: Json | null
+          salary_max?: number | null
+          salary_min?: number | null
+          seniority_level?: string | null
+          updated_at?: string
+          user_id?: string
+          years_experience_max?: number | null
+          years_experience_min?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -135,6 +269,7 @@ export type Database = {
           subscription_expires_at: string | null
           subscription_status: string | null
           subscription_tier: string | null
+          user_mode: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -144,6 +279,7 @@ export type Database = {
           subscription_expires_at?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
+          user_mode?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -153,6 +289,7 @@ export type Database = {
           subscription_expires_at?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
+          user_mode?: string | null
         }
         Relationships: []
       }

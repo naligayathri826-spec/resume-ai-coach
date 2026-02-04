@@ -1,4 +1,4 @@
-import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut, User } from "lucide-react";
+import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut, User, Briefcase, CreditCard, Sparkles } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { User as SupabaseUser } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 import {
   Sidebar,
@@ -21,11 +22,21 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const navItems = [
+const candidateNavItems = [
   { title: "Home", url: "/", icon: Home, authRequired: false },
   { title: "Upload Resume", url: "/upload", icon: Upload, authRequired: true },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, authRequired: true },
   { title: "AI Coach", url: "/chatbot", icon: MessageSquare, authRequired: false },
+];
+
+const hiringNavItems = [
+  { title: "Home", url: "/", icon: Home, authRequired: false },
+  { title: "My Jobs", url: "/hiring/jobs", icon: Briefcase, authRequired: true },
+  { title: "AI Coach", url: "/chatbot", icon: MessageSquare, authRequired: false },
+];
+
+const commonNavItems = [
+  { title: "Pricing", url: "/pricing", icon: CreditCard, authRequired: false },
   { title: "Users", url: "/users", icon: Users, authRequired: true },
 ];
 
@@ -36,6 +47,8 @@ export function AppSidebar() {
   const { toast } = useToast();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  const [userMode, setUserMode] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -53,6 +66,7 @@ export function AppSidebar() {
         }, 0);
       } else {
         setAvatarUrl(null);
+        setUserMode(null);
       }
     });
 
@@ -62,14 +76,17 @@ export function AppSidebar() {
   const fetchUserProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("avatar_url")
+      .select("avatar_url, user_mode")
       .eq("id", userId)
       .single();
     
     if (data) {
       setAvatarUrl(data.avatar_url);
+      setUserMode(data.user_mode);
     }
   };
+
+  const navItems = userMode === "hiring" ? hiringNavItems : candidateNavItems;
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -110,10 +127,47 @@ export function AppSidebar() {
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel className="flex items-center gap-2">
+            {userMode === "hiring" ? "Hiring Mode" : "Job Seeker"}
+            {userMode && !isCollapsed && (
+              <Badge variant="secondary" className="text-xs">
+                {userMode === "hiring" ? "HR" : "Candidate"}
+              </Badge>
+            )}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => {
+                const isActive = location.pathname === item.url || 
+                  (item.url === "/hiring/jobs" && location.pathname.startsWith("/hiring"));
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.title}
+                    >
+                      <Link
+                        to={item.url}
+                        onClick={(e) => handleNavClick(item, e)}
+                        className="flex items-center gap-3"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>More</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {commonNavItems.map((item) => {
                 const isActive = location.pathname === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -134,6 +188,19 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+              {user && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Switch Mode"
+                  >
+                    <Link to="/mode-selection" className="flex items-center gap-3">
+                      <Sparkles className="h-4 w-4" />
+                      <span>Switch Mode</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
