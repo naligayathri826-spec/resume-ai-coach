@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Users, CheckCircle, AlertCircle, XCircle, Download, 
-  ChevronDown, ChevronUp, Briefcase, Target, Star 
+  ChevronDown, ChevronUp, Briefcase, Target, Star, CalendarDays
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
@@ -150,6 +150,10 @@ const RecruiterDashboard = () => {
                 )}
               </div>
               <div className="flex gap-3">
+                <Button variant="outline" onClick={() => navigate(`/hiring/interviews/${jobId}`)}>
+                  <CalendarDays className="w-4 h-4 mr-2" />
+                  Interviews
+                </Button>
                 <Button variant="outline" onClick={exportToCSV}>
                   <Download className="w-4 h-4 mr-2" />
                   Export CSV

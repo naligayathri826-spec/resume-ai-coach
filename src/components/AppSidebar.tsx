@@ -1,4 +1,4 @@
-import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut, User, Briefcase, CreditCard, Sparkles } from "lucide-react";
+import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut, User, Briefcase, CreditCard, Sparkles, CalendarDays } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";

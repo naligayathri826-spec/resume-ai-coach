@@ -22,6 +22,7 @@ import JobsList from "./pages/hiring/JobsList";
 import JobIntake from "./pages/hiring/JobIntake";
 import CandidateUpload from "./pages/hiring/CandidateUpload";
 import RecruiterDashboard from "./pages/hiring/RecruiterDashboard";
+import InterviewScheduling from "./pages/hiring/InterviewScheduling";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
                     <Route path="/hiring/new" element={<JobIntake />} />
                     <Route path="/hiring/candidates/:jobId" element={<CandidateUpload />} />
                     <Route path="/hiring/dashboard/:jobId" element={<RecruiterDashboard />} />
+                    <Route path="/hiring/interviews/:jobId" element={<InterviewScheduling />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
