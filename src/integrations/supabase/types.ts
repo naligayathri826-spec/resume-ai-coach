@@ -260,6 +260,66 @@ export type Database = {
         }
         Relationships: []
       }
+      interviews: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          interview_type: string
+          job_id: string
+          location: string | null
+          notes: string | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          interview_type?: string
+          job_id: string
+          location?: string | null
+          notes?: string | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          interview_type?: string
+          job_id?: string
+          location?: string | null
+          notes?: string | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interviews_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "hiring_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
