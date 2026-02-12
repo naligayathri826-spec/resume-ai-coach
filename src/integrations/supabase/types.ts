@@ -265,11 +265,13 @@ export type Database = {
           candidate_id: string
           created_at: string
           duration_minutes: number
+          feedback: string | null
           id: string
           interview_type: string
           job_id: string
           location: string | null
           notes: string | null
+          rating: number | null
           scheduled_at: string
           status: string
           updated_at: string
@@ -279,11 +281,13 @@ export type Database = {
           candidate_id: string
           created_at?: string
           duration_minutes?: number
+          feedback?: string | null
           id?: string
           interview_type?: string
           job_id: string
           location?: string | null
           notes?: string | null
+          rating?: number | null
           scheduled_at: string
           status?: string
           updated_at?: string
@@ -293,11 +297,13 @@ export type Database = {
           candidate_id?: string
           created_at?: string
           duration_minutes?: number
+          feedback?: string | null
           id?: string
           interview_type?: string
           job_id?: string
           location?: string | null
           notes?: string | null
+          rating?: number | null
           scheduled_at?: string
           status?: string
           updated_at?: string
