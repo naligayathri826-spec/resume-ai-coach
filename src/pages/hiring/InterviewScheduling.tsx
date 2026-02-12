@@ -12,10 +12,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format, isSameDay, parseISO, addHours, setHours, setMinutes } from "date-fns";
+import { format, isSameDay, parseISO, setHours, setMinutes } from "date-fns";
 import {
   CalendarDays, Clock, Video, Phone, MapPin, Plus, Trash2,
-  ChevronLeft, User, Briefcase, CheckCircle, AlertCircle
+  ChevronLeft, User, Briefcase, CheckCircle, AlertCircle, Star, MessageSquare
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
@@ -29,6 +29,8 @@ interface Interview {
   location: string | null;
   notes: string | null;
   status: string;
+  feedback: string | null;
+  rating: number | null;
   candidate_name?: string;
   candidate_email?: string;
 }
@@ -65,6 +67,10 @@ const InterviewScheduling = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [feedbackInterview, setFeedbackInterview] = useState<Interview | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackRating, setFeedbackRating] = useState(3);
 
   // Form state
   const [selectedCandidate, setSelectedCandidate] = useState("");
@@ -92,7 +98,6 @@ const InterviewScheduling = () => {
       setJob(jobRes.data);
       setCandidates((candidatesRes.data || []) as Candidate[]);
 
-      // Enrich interviews with candidate names
       const enriched = (interviewsRes.data || []).map((iv: any) => {
         const cand = candidatesRes.data?.find((c: any) => c.id === iv.candidate_id);
         return { ...iv, candidate_name: cand?.candidate_name, candidate_email: cand?.candidate_email };
@@ -102,6 +107,29 @@ const InterviewScheduling = () => {
       toast({ title: "Error", description: "Failed to load data", variant: "destructive" });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const sendInterviewEmail = async (candidateName: string, scheduledAt: Date) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email || !job) return;
+
+      await supabase.functions.invoke("send-interview-email", {
+        body: {
+          recruiterEmail: user.email,
+          candidateName: candidateName || "Unknown Candidate",
+          jobTitle: job.job_title,
+          companyName: job.company_name,
+          scheduledAt: scheduledAt.toISOString(),
+          durationMinutes: parseInt(duration),
+          interviewType: selectedType,
+          location: location || undefined,
+          notes: notes || undefined,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to send interview email:", err);
     }
   };
 
@@ -133,7 +161,12 @@ const InterviewScheduling = () => {
     if (error) {
       toast({ title: "Error", description: "Failed to schedule interview", variant: "destructive" });
     } else {
+      const cand = candidates.find((c) => c.id === selectedCandidate);
       toast({ title: "Interview Scheduled", description: `Interview set for ${format(scheduledAt, "PPP 'at' p")}` });
+      
+      // Send email notification
+      sendInterviewEmail(cand?.candidate_name || cand?.file_name || "Unknown", scheduledAt);
+
       setDialogOpen(false);
       resetForm();
       fetchData();
@@ -141,11 +174,40 @@ const InterviewScheduling = () => {
     setIsSaving(false);
   };
 
+  const handleMarkCompleted = (interview: Interview) => {
+    setFeedbackInterview(interview);
+    setFeedbackText(interview.feedback || "");
+    setFeedbackRating(interview.rating || 3);
+    setFeedbackDialogOpen(true);
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackInterview) return;
+    setIsSaving(true);
+
+    const { error } = await supabase
+      .from("interviews")
+      .update({
+        status: "completed",
+        feedback: feedbackText || null,
+        rating: feedbackRating,
+      })
+      .eq("id", feedbackInterview.id);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to update interview", variant: "destructive" });
+    } else {
+      toast({ title: "Interview Completed", description: "Feedback saved successfully" });
+      setFeedbackDialogOpen(false);
+      setFeedbackInterview(null);
+      fetchData();
+    }
+    setIsSaving(false);
+  };
+
   const handleCancel = async (interviewId: string) => {
     const { error } = await supabase.from("interviews").update({ status: "cancelled" }).eq("id", interviewId);
-    if (error) {
-      toast({ title: "Error", description: "Failed to cancel interview", variant: "destructive" });
-    } else {
+    if (!error) {
       toast({ title: "Interview Cancelled" });
       fetchData();
     }
@@ -153,9 +215,7 @@ const InterviewScheduling = () => {
 
   const handleDelete = async (interviewId: string) => {
     const { error } = await supabase.from("interviews").delete().eq("id", interviewId);
-    if (error) {
-      toast({ title: "Error", description: "Failed to delete interview", variant: "destructive" });
-    } else {
+    if (!error) {
       toast({ title: "Interview Deleted" });
       fetchData();
     }
@@ -198,6 +258,20 @@ const InterviewScheduling = () => {
     return <Icon className="w-4 h-4" />;
   };
 
+  const renderStars = (rating: number, interactive = false, onRate?: (r: number) => void) => (
+    <div className="flex gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          key={star}
+          className={`w-5 h-5 ${interactive ? "cursor-pointer" : ""} ${
+            star <= rating ? "text-yellow-500 fill-yellow-500" : "text-muted-foreground"
+          }`}
+          onClick={() => interactive && onRate?.(star)}
+        />
+      ))}
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -234,7 +308,7 @@ const InterviewScheduling = () => {
                     <Plus className="w-4 h-4 mr-2" /> Schedule Interview
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Schedule New Interview</DialogTitle>
                     <DialogDescription>Select a candidate, date, and time for the interview.</DialogDescription>
@@ -310,21 +384,12 @@ const InterviewScheduling = () => {
 
                     <div className="space-y-2">
                       <Label>Location / Meeting Link</Label>
-                      <Input
-                        placeholder="e.g. Zoom link or office address"
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                      />
+                      <Input placeholder="e.g. Zoom link or office address" value={location} onChange={(e) => setLocation(e.target.value)} />
                     </div>
 
                     <div className="space-y-2">
                       <Label>Notes</Label>
-                      <Textarea
-                        placeholder="Interview focus areas, preparation notes..."
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        rows={3}
-                      />
+                      <Textarea placeholder="Interview focus areas, preparation notes..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
                     </div>
                   </div>
                   <DialogFooter>
@@ -337,6 +402,42 @@ const InterviewScheduling = () => {
               </Dialog>
             </div>
           </motion.div>
+
+          {/* Feedback Dialog */}
+          <Dialog open={feedbackDialogOpen} onOpenChange={setFeedbackDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Complete Interview & Add Feedback</DialogTitle>
+                <DialogDescription>
+                  Rate the candidate and add your interview notes for {feedbackInterview?.candidate_name || "this candidate"}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Rating</Label>
+                  {renderStars(feedbackRating, true, setFeedbackRating)}
+                  <p className="text-xs text-muted-foreground">
+                    {feedbackRating === 1 ? "Poor" : feedbackRating === 2 ? "Below Average" : feedbackRating === 3 ? "Average" : feedbackRating === 4 ? "Good" : "Excellent"}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label>Feedback</Label>
+                  <Textarea
+                    placeholder="How did the interview go? Key takeaways, strengths, concerns..."
+                    value={feedbackText}
+                    onChange={(e) => setFeedbackText(e.target.value)}
+                    rows={5}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setFeedbackDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSubmitFeedback} disabled={isSaving}>
+                  {isSaving ? "Saving..." : "Mark as Completed"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -365,7 +466,7 @@ const InterviewScheduling = () => {
               <CardContent className="p-4 text-center">
                 <Clock className="w-8 h-8 mx-auto mb-2 text-yellow-500" />
                 <p className="text-2xl font-bold">{interviewsOnSelectedDate.length}</p>
-                <p className="text-sm text-muted-foreground">Today's Interviews</p>
+                <p className="text-sm text-muted-foreground">Selected Day</p>
               </CardContent>
             </Card>
           </div>
@@ -409,18 +510,14 @@ const InterviewScheduling = () => {
                   </div>
                 ) : (
                   interviewsOnSelectedDate.map((iv) => (
-                    <motion.div
-                      key={iv.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                    >
+                    <motion.div key={iv.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
                       <Card className={`border-l-4 ${
                         iv.status === "cancelled" ? "border-l-muted opacity-60" :
                         iv.status === "completed" ? "border-l-green-500" : "border-l-primary"
                       }`}>
                         <CardContent className="p-4">
                           <div className="flex items-start justify-between">
-                            <div className="space-y-1">
+                            <div className="space-y-1 flex-1">
                               <div className="flex items-center gap-2">
                                 <User className="w-4 h-4 text-primary" />
                                 <span className="font-medium">{iv.candidate_name || "Unknown Candidate"}</span>
@@ -442,28 +539,43 @@ const InterviewScheduling = () => {
                                 </p>
                               )}
                               {iv.notes && (
-                                <p className="text-sm text-muted-foreground mt-2 italic">"{iv.notes}"</p>
+                                <p className="text-sm text-muted-foreground mt-1 italic">"{iv.notes}"</p>
+                              )}
+                              
+                              {/* Feedback display for completed interviews */}
+                              {iv.status === "completed" && (iv.feedback || iv.rating) && (
+                                <div className="mt-3 p-3 bg-muted/50 rounded-lg space-y-2">
+                                  <div className="flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4 text-primary" />
+                                    <span className="text-sm font-medium">Interview Feedback</span>
+                                  </div>
+                                  {iv.rating && renderStars(iv.rating)}
+                                  {iv.feedback && (
+                                    <p className="text-sm text-muted-foreground">{iv.feedback}</p>
+                                  )}
+                                </div>
                               )}
                             </div>
-                            {iv.status === "scheduled" && (
-                              <div className="flex gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleCancel(iv.id)}
-                                >
-                                  Cancel
+                            <div className="flex gap-2 ml-4">
+                              {iv.status === "scheduled" && (
+                                <>
+                                  <Button variant="default" size="sm" onClick={() => handleMarkCompleted(iv)}>
+                                    <CheckCircle className="w-4 h-4 mr-1" /> Complete
+                                  </Button>
+                                  <Button variant="outline" size="sm" onClick={() => handleCancel(iv.id)}>
+                                    Cancel
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => handleDelete(iv.id)} className="text-destructive hover:text-destructive">
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                              {iv.status === "completed" && (
+                                <Button variant="outline" size="sm" onClick={() => handleMarkCompleted(iv)}>
+                                  Edit Feedback
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDelete(iv.id)}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            )}
+                              )}
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
