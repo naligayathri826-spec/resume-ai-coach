@@ -15,8 +15,9 @@ import { useToast } from "@/hooks/use-toast";
 import { format, isSameDay, parseISO, setHours, setMinutes } from "date-fns";
 import {
   CalendarDays, Clock, Video, Phone, MapPin, Plus, Trash2,
-  ChevronLeft, User, Briefcase, CheckCircle, AlertCircle, Star, MessageSquare
+  ChevronLeft, User, Briefcase, CheckCircle, AlertCircle, Star, MessageSquare, Download
 } from "lucide-react";
+import { downloadICS } from "@/lib/icsExport";
 import Footer from "@/components/Footer";
 
 interface Interview {
@@ -573,6 +574,25 @@ const InterviewScheduling = () => {
                               {iv.status === "completed" && (
                                 <Button variant="outline" size="sm" onClick={() => handleMarkCompleted(iv)}>
                                   Edit Feedback
+                                </Button>
+                              )}
+                              {iv.status !== "cancelled" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Download .ics"
+                                  onClick={() => {
+                                    const typeLabel = interviewTypes.find(t => t.value === iv.interview_type)?.label || iv.interview_type;
+                                    downloadICS({
+                                      title: `Interview: ${iv.candidate_name || "Candidate"} - ${job?.job_title || "Position"}`,
+                                      description: `${typeLabel} interview for ${job?.job_title || "Position"} at ${job?.company_name || "Company"}${iv.notes ? `\nNotes: ${iv.notes}` : ""}`,
+                                      location: iv.location || undefined,
+                                      startDate: parseISO(iv.scheduled_at),
+                                      durationMinutes: iv.duration_minutes,
+                                    }, `interview-${iv.candidate_name || "candidate"}`);
+                                  }}
+                                >
+                                  <Download className="w-4 h-4" />
                                 </Button>
                               )}
                             </div>

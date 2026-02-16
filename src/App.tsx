@@ -23,6 +23,8 @@ import JobIntake from "./pages/hiring/JobIntake";
 import CandidateUpload from "./pages/hiring/CandidateUpload";
 import RecruiterDashboard from "./pages/hiring/RecruiterDashboard";
 import InterviewScheduling from "./pages/hiring/InterviewScheduling";
+import CompanyDashboard from "./pages/hiring/CompanyDashboard";
+import JobBoard from "./pages/JobBoard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +59,8 @@ const App = () => (
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/pricing" element={<Pricing />} />
                     <Route path="/mode-selection" element={<ModeSelection />} />
+                    <Route path="/jobs" element={<JobBoard />} />
+                    <Route path="/hiring/overview" element={<CompanyDashboard />} />
                     <Route path="/hiring/jobs" element={<JobsList />} />
                     <Route path="/hiring/new" element={<JobIntake />} />
                     <Route path="/hiring/candidates/:jobId" element={<CandidateUpload />} />
