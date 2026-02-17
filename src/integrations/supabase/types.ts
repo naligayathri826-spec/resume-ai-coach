@@ -326,6 +326,54 @@ export type Database = {
           },
         ]
       }
+      job_applications: {
+        Row: {
+          cover_note: string | null
+          created_at: string
+          id: string
+          job_id: string
+          resume_id: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_note?: string | null
+          created_at?: string
+          id?: string
+          job_id: string
+          resume_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_note?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string
+          resume_id?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "hiring_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

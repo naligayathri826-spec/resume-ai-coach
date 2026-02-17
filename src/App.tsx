@@ -25,6 +25,7 @@ import RecruiterDashboard from "./pages/hiring/RecruiterDashboard";
 import InterviewScheduling from "./pages/hiring/InterviewScheduling";
 import CompanyDashboard from "./pages/hiring/CompanyDashboard";
 import JobBoard from "./pages/JobBoard";
+import MyApplications from "./pages/MyApplications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -60,6 +61,7 @@ const App = () => (
                     <Route path="/pricing" element={<Pricing />} />
                     <Route path="/mode-selection" element={<ModeSelection />} />
                     <Route path="/jobs" element={<JobBoard />} />
+                    <Route path="/applications" element={<MyApplications />} />
                     <Route path="/hiring/overview" element={<CompanyDashboard />} />
                     <Route path="/hiring/jobs" element={<JobsList />} />
                     <Route path="/hiring/new" element={<JobIntake />} />
