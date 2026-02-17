@@ -5,11 +5,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
   Briefcase, MapPin, DollarSign, Search, Building2,
-  Clock, Users, Sparkles, ExternalLink, Filter
+  Clock, Users, Sparkles, ExternalLink, Filter, Send, CheckCircle
 } from "lucide-react";
 import Footer from "@/components/Footer";
 
@@ -36,9 +40,36 @@ const JobBoard = () => {
   const [filteredJobs, setFilteredJobs] = useState<PublicJob[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [applyDialogOpen, setApplyDialogOpen] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<PublicJob | null>(null);
+  const [coverNote, setCoverNote] = useState("");
+  const [selectedResumeId, setSelectedResumeId] = useState("");
+  const [resumes, setResumes] = useState<{ id: string; file_name: string }[]>([]);
+  const [appliedJobIds, setAppliedJobIds] = useState<Set<string>>(new Set());
+  const [isApplying, setIsApplying] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  const checkUser = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setUser(session.user);
+      // Fetch user's resumes
+      const { data: resumeData } = await supabase
+        .from("resumes")
+        .select("id, file_name")
+        .order("uploaded_at", { ascending: false });
+      setResumes(resumeData || []);
+      // Fetch already-applied jobs
+      const { data: appData } = await supabase
+        .from("job_applications")
+        .select("job_id");
+      setAppliedJobIds(new Set((appData || []).map((a: any) => a.job_id)));
+    }
+  };
 
   useEffect(() => {
     fetchJobs();
+    checkUser();
   }, []);
 
   useEffect(() => {
@@ -197,13 +228,29 @@ const JobBoard = () => {
                         </div>
 
                         <div className="flex flex-col items-end gap-2">
-                          <Button
-                            onClick={() => navigate("/upload")}
-                            className="gradient-primary"
-                            size="sm"
-                          >
-                            Apply with Resume
-                          </Button>
+                          {appliedJobIds.has(job.id) ? (
+                            <Button variant="outline" size="sm" disabled>
+                              <CheckCircle className="w-4 h-4 mr-2 text-green-500" /> Applied
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => {
+                                if (!user) {
+                                  navigate("/auth");
+                                  toast({ title: "Sign in required", description: "Please sign in to apply." });
+                                  return;
+                                }
+                                setSelectedJob(job);
+                                setCoverNote("");
+                                setSelectedResumeId(resumes[0]?.id || "");
+                                setApplyDialogOpen(true);
+                              }}
+                              className="gradient-primary"
+                              size="sm"
+                            >
+                              <Send className="w-4 h-4 mr-2" /> Apply Now
+                            </Button>
+                          )}
                           {job.education_requirements && (
                             <p className="text-xs text-muted-foreground">{job.education_requirements}</p>
                           )}
@@ -215,6 +262,73 @@ const JobBoard = () => {
               ))}
             </div>
           )}
+
+          {/* Apply Dialog */}
+          <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>Apply to {selectedJob?.job_title}</DialogTitle>
+                <DialogDescription>{selectedJob?.company_name}</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Select Resume</Label>
+                  {resumes.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">
+                      <p>No resumes uploaded yet.</p>
+                      <Button variant="link" className="p-0 h-auto" onClick={() => { setApplyDialogOpen(false); navigate("/upload"); }}>
+                        Upload a resume first
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select value={selectedResumeId} onValueChange={setSelectedResumeId}>
+                      <SelectTrigger><SelectValue placeholder="Pick a resume" /></SelectTrigger>
+                      <SelectContent>
+                        {resumes.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>{r.file_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Cover Note (optional)</Label>
+                  <Textarea
+                    placeholder="Why are you a great fit for this role?"
+                    value={coverNote}
+                    onChange={(e) => setCoverNote(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setApplyDialogOpen(false)}>Cancel</Button>
+                <Button
+                  disabled={!selectedResumeId || isApplying}
+                  onClick={async () => {
+                    if (!selectedJob || !user) return;
+                    setIsApplying(true);
+                    const { error } = await supabase.from("job_applications").insert({
+                      job_id: selectedJob.id,
+                      user_id: user.id,
+                      resume_id: selectedResumeId || null,
+                      cover_note: coverNote || null,
+                    });
+                    if (error) {
+                      toast({ title: "Error", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Application Submitted!", description: `You applied to ${selectedJob.job_title}` });
+                      setAppliedJobIds((prev) => new Set([...prev, selectedJob.id]));
+                      setApplyDialogOpen(false);
+                    }
+                    setIsApplying(false);
+                  }}
+                >
+                  {isApplying ? "Submitting..." : "Submit Application"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
       <Footer />

@@ -1,9 +1,10 @@
-import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut, User, Briefcase, CreditCard, Sparkles, CalendarDays, Building2, Search, FileText } from "lucide-react";
+import { Home, Upload, LayoutDashboard, MessageSquare, Users, LogOut, User, Briefcase, CreditCard, Sparkles, CalendarDays, Building2, Search, FileText, ClipboardList } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { useToast } from "@/hooks/use-toast";
+import { useRealtimeNotifications } from "@/hooks/useRealtimeNotifications";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +26,7 @@ import {
 const candidateNavItems = [
   { title: "Home", url: "/", icon: Home, authRequired: false },
   { title: "Job Board", url: "/jobs", icon: Search, authRequired: false },
+  { title: "My Applications", url: "/applications", icon: ClipboardList, authRequired: true },
   { title: "Upload Resume", url: "/upload", icon: Upload, authRequired: true },
   { title: "My Dashboard", url: "/dashboard", icon: LayoutDashboard, authRequired: true },
   { title: "AI Coach", url: "/chatbot", icon: MessageSquare, authRequired: false },
@@ -89,6 +91,9 @@ export function AppSidebar() {
   };
 
   const navItems = userMode === "hiring" ? hiringNavItems : candidateNavItems;
+
+  // Wire realtime notifications
+  useRealtimeNotifications(user?.id, userMode);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
