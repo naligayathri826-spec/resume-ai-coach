@@ -24,6 +24,7 @@ import CandidateUpload from "./pages/hiring/CandidateUpload";
 import RecruiterDashboard from "./pages/hiring/RecruiterDashboard";
 import InterviewScheduling from "./pages/hiring/InterviewScheduling";
 import CompanyDashboard from "./pages/hiring/CompanyDashboard";
+import ApplicationReview from "./pages/hiring/ApplicationReview";
 import JobBoard from "./pages/JobBoard";
 import MyApplications from "./pages/MyApplications";
 import NotFound from "./pages/NotFound";
@@ -68,6 +69,7 @@ const App = () => (
                     <Route path="/hiring/candidates/:jobId" element={<CandidateUpload />} />
                     <Route path="/hiring/dashboard/:jobId" element={<RecruiterDashboard />} />
                     <Route path="/hiring/interviews/:jobId" element={<InterviewScheduling />} />
+                    <Route path="/hiring/applications" element={<ApplicationReview />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

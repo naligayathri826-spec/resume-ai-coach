@@ -36,6 +36,7 @@ const hiringNavItems = [
   { title: "Home", url: "/", icon: Home, authRequired: false },
   { title: "Company Dashboard", url: "/hiring/overview", icon: Building2, authRequired: true },
   { title: "My Jobs", url: "/hiring/jobs", icon: Briefcase, authRequired: true },
+  { title: "Applications", url: "/hiring/applications", icon: FileText, authRequired: true },
   { title: "AI Coach", url: "/chatbot", icon: MessageSquare, authRequired: false },
 ];
 
