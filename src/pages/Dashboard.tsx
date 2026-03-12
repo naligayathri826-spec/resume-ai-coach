@@ -99,8 +99,6 @@ const Dashboard = () => {
       if (error) throw error;
 
       setAnalyses(data as any);
-
-      setAnalyses(data as any);
     } catch (error) {
       console.error("Error fetching analyses:", error);
       toast({
