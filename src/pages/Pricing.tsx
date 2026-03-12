@@ -185,6 +185,7 @@ const Pricing = () => {
                       className={`w-full ${plan.gradient ? "gradient-primary" : ""}`}
                       variant={plan.gradient ? "default" : "outline"}
                       size="lg"
+                      onClick={() => window.location.href = "/auth"}
                     >
                       {plan.cta}
                     </Button>
