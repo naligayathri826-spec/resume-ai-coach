@@ -1,15 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Download, MessageSquare, TrendingUp } from "lucide-react";
+import { Download, MessageSquare } from "lucide-react";
 import Footer from "@/components/Footer";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
-import { SocialShare } from "@/components/SocialShare";
 
 interface Skill {
   name: string;
@@ -222,30 +220,6 @@ const Results = () => {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Skills Overview */}
-            <Card className="shadow-medium animate-fade-in-up">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Skills Overview
-                </CardTitle>
-                <CardDescription>
-                  Analysis of your technical and professional skills
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {analysisData.skills.map((skill, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{skill.name}</span>
-                      <span className="text-sm text-muted-foreground">{skill.level}%</span>
-                    </div>
-                    <Progress value={skill.level} className="h-2" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
             {/* Job Matches */}
             <Card className="shadow-medium animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
               <CardHeader>
@@ -304,19 +278,10 @@ const Results = () => {
           </div>
 
           <div className="flex flex-wrap gap-4 justify-center mt-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-            <Button size="lg" className="shadow-medium gradient-primary">
-              <Download className="mr-2 h-4 w-4" />
-              Download Report
-            </Button>
             <Button size="lg" variant="outline" className="shadow-medium" onClick={() => navigate("/chatbot")}>
               <MessageSquare className="mr-2 h-4 w-4" />
               Get AI Advice
             </Button>
-            <SocialShare 
-              score={analysisData.overall_score} 
-              category={analysisData.field_category}
-              title="My Resume Analysis Results"
-            />
           </div>
         </div>
       </main>
