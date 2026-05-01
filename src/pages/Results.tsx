@@ -222,30 +222,6 @@ const Results = () => {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* Skills Overview */}
-            <Card className="shadow-medium animate-fade-in-up">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Skills Overview
-                </CardTitle>
-                <CardDescription>
-                  Analysis of your technical and professional skills
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {analysisData.skills.map((skill, index) => (
-                  <div key={index} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{skill.name}</span>
-                      <span className="text-sm text-muted-foreground">{skill.level}%</span>
-                    </div>
-                    <Progress value={skill.level} className="h-2" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
             {/* Job Matches */}
             <Card className="shadow-medium animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
               <CardHeader>
