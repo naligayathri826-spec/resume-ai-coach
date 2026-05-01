@@ -280,19 +280,10 @@ const Results = () => {
           </div>
 
           <div className="flex flex-wrap gap-4 justify-center mt-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-            <Button size="lg" className="shadow-medium gradient-primary">
-              <Download className="mr-2 h-4 w-4" />
-              Download Report
-            </Button>
             <Button size="lg" variant="outline" className="shadow-medium" onClick={() => navigate("/chatbot")}>
               <MessageSquare className="mr-2 h-4 w-4" />
               Get AI Advice
             </Button>
-            <SocialShare 
-              score={analysisData.overall_score} 
-              category={analysisData.field_category}
-              title="My Resume Analysis Results"
-            />
           </div>
         </div>
       </main>
