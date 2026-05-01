@@ -1,15 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Download, MessageSquare, TrendingUp } from "lucide-react";
+import { Download, MessageSquare } from "lucide-react";
 import Footer from "@/components/Footer";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuthGracePeriod } from "@/hooks/useAuthGracePeriod";
-import { SocialShare } from "@/components/SocialShare";
 
 interface Skill {
   name: string;
