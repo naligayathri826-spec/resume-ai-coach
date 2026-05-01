@@ -245,9 +245,6 @@ const Results = () => {
                       <p className="text-muted-foreground">{job.location}</p>
                       <p className="font-medium text-primary">{job.salary}</p>
                     </div>
-                    <Button className="w-full mt-3" size="sm">
-                      Apply Now
-                    </Button>
                   </div>
                 ))}
               </CardContent>
