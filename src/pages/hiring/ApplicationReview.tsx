@@ -100,19 +100,9 @@ export default function ApplicationReview() {
       toast({ title: "Status Updated", description: `Application marked as ${newStatus}` });
 
       // Send email notification to candidate
-      const app = applications.find((a) => a.id === appId);
-      const job = jobs.find((j) => j.id === selectedJobId);
-      const profile = app ? profiles[app.user_id] : null;
-      if (profile && job) {
-        supabase.functions.invoke("send-application-status-email", {
-          body: {
-            candidateEmail: profile.email,
-            jobTitle: job.job_title,
-            companyName: job.company_name,
-            newStatus,
-          },
-        }).catch((e) => console.error("Email send error:", e));
-      }
+      supabase.functions.invoke("send-application-status-email", {
+        body: { applicationId: appId },
+      }).catch((e) => console.error("Email send error:", e));
     }
     setUpdatingId(null);
   };
