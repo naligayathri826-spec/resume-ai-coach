@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import Footer from "@/components/Footer";
 import { Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -106,26 +107,25 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/upload`,
-        }
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin + "/auth",
       });
-
-      if (error) {
+      if (result.error) {
         toast({
-          title: "Error",
-          description: error.message,
+          title: "Google sign-in failed",
+          description: "We couldn't sign you in with Google. Please try again or use email.",
           variant: "destructive",
         });
+        setIsLoading(false);
+        return;
       }
-
       localStorage.removeItem("first_visit_timestamp");
+      if (result.redirected) return;
+      // Session set; onAuthStateChange handles navigation
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to sign in with Google",
+        title: "Google sign-in failed",
+        description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
       setIsLoading(false);
