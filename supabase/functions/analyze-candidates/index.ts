@@ -14,31 +14,53 @@ serve(async (req: Request): Promise<Response> => {
 
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("No authorization header");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
+
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userError } = await userClient.auth.getUser(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    const callerId = userData.user.id;
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { jobId } = await req.json();
 
-    if (!jobId) {
-      throw new Error("Job ID is required");
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (typeof jobId !== "string" || !uuidRe.test(jobId)) {
+      return new Response(JSON.stringify({ error: "Valid Job ID is required" }), {
+        status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
-    // Fetch job details
+    // Fetch job details, bound to the caller's ownership
     const { data: job, error: jobError } = await supabase
       .from("hiring_jobs")
       .select("*")
       .eq("id", jobId)
-      .single();
+      .eq("user_id", callerId)
+      .maybeSingle();
 
     if (jobError || !job) {
-      throw new Error("Job not found");
+      return new Response(JSON.stringify({ error: "Job not found" }), {
+        status: 404, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     // Fetch unanalyzed candidates
