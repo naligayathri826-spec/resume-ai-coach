@@ -1,4 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,20 +31,45 @@ serve(async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const json = (b: unknown, status: number) =>
+    new Response(JSON.stringify(b), { status, headers: { "Content-Type": "application/json", ...corsHeaders } });
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const authClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userError } = await authClient.auth.getUser();
+    if (userError || !userData?.user) return json({ error: "Unauthorized" }, 401);
+
+    const body = await req.json().catch(() => ({}));
+    const applicationId = typeof body?.applicationId === "string" ? body.applicationId : "";
+    if (!/^[0-9a-f-]{36}$/i.test(applicationId)) return json({ error: "Invalid applicationId" }, 400);
+
+    const admin = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: app } = await admin
+      .from("job_applications")
+      .select("id, status, user_id, hiring_jobs(user_id, job_title, company_name)")
+      .eq("id", applicationId)
+      .maybeSingle();
+    const job: any = Array.isArray((app as any)?.hiring_jobs) ? (app as any).hiring_jobs[0] : (app as any)?.hiring_jobs;
+    if (!app || !job || job.user_id !== userData.user.id) return json({ error: "Forbidden" }, 403);
+
+    const { data: profile } = await admin.from("profiles").select("email").eq("id", app.user_id).maybeSingle();
+    if (!profile?.email) return json({ success: true, message: "No candidate email" }, 200);
+
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    if (!resendApiKey) {
-      return new Response(
-        JSON.stringify({ success: true, message: "Email skipped - no API key" }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
+    if (!resendApiKey) return json({ success: true, message: "Email skipped - no API key" }, 200);
 
-    const { candidateEmail, candidateName, jobTitle, companyName, newStatus }: StatusEmailRequest = await req.json();
+    const candidateEmail = profile.email;
+    const candidateName = "";
+    const jobTitle = escapeHtml(String(job.job_title ?? ""));
+    const companyName = escapeHtml(String(job.company_name ?? ""));
+    const newStatus = String(app.status);
 
-    if (!candidateEmail) throw new Error("Candidate email is required");
-
-    const config = statusConfig[newStatus] || { label: newStatus, color: "#6b7280", emoji: "📌", message: "Your application status has been updated." };
+    const config = statusConfig[newStatus] || { label: "Updated", color: "#6b7280", emoji: "📌", message: "Your application status has been updated." };
 
     const emailHtml = `
       <!DOCTYPE html>
