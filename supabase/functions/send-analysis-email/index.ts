@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -22,39 +25,40 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Internal-only: must be called server-side with the service role key
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     
-    // If no Resend API key, return success but log that email wasn't sent
     if (!resendApiKey) {
       console.log("RESEND_API_KEY not configured - skipping email notification");
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Email notification skipped - RESEND_API_KEY not configured" 
-        }),
-        { 
-          status: 200, 
-          headers: { "Content-Type": "application/json", ...corsHeaders } 
-        }
+        JSON.stringify({ success: true, message: "Email notification skipped" }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    const {
-      email,
-      userName,
-      resumeName,
-      overallScore,
-      fieldCategory,
-      topStrengths,
-      analysisUrl,
-    }: AnalysisEmailRequest = await req.json();
-
-    if (!email) {
-      throw new Error("Email is required");
-    }
+    const body: Partial<AnalysisEmailRequest> = await req.json();
+    const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
+    const email = str(body.email, 320);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Valid email is required");
+    const userName = escapeHtml(str(body.userName, 100));
+    const resumeName = escapeHtml(str(body.resumeName, 200));
+    const fieldCategory = escapeHtml(str(body.fieldCategory, 100));
+    const scoreNum = Number(body.overallScore);
+    const overallScore = Number.isFinite(scoreNum) ? Math.max(0, Math.min(100, Math.round(scoreNum))) : 0;
+    const topStrengths = Array.isArray(body.topStrengths) ? body.topStrengths.slice(0, 3).map((s) => escapeHtml(str(s, 300))) : [];
+    const rawUrl = str(body.analysisUrl, 500);
+    const analysisUrl = /^https:\/\//.test(rawUrl) ? escapeHtml(rawUrl) : "#";
 
     const scoreColor = overallScore >= 80 ? "#22c55e" : overallScore >= 60 ? "#eab308" : "#ef4444";
-    const strengthsList = topStrengths.slice(0, 3).map(s => `<li style="margin-bottom: 8px;">✓ ${s}</li>`).join("");
+    const strengthsList = topStrengths.map(s => `<li style="margin-bottom: 8px;">✓ ${s}</li>`).join("");
 
     const emailHtml = `
       <!DOCTYPE html>
