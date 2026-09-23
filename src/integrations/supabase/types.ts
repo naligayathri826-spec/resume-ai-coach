@@ -461,6 +461,7 @@ export type Database = {
     }
     Functions: {
       check_upload_limit: { Args: { user_id_param: string }; Returns: number }
+      get_user_mode: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -470,6 +471,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_applicant_of_recruiter: {
+        Args: { _applicant: string; _recruiter: string }
         Returns: boolean
       }
     }
