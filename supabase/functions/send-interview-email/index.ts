@@ -1,4 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const escapeHtml = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,6 +29,26 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    const authClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const { data: userData, error: userError } = await authClient.auth.getUser();
+    if (userError || !userData?.user?.email) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+    // Always send to the signed-in user's own verified email; ignore any caller-supplied recipient
+    const recruiterEmail = userData.user.email;
+
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     if (!resendApiKey) {
@@ -35,24 +59,25 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    const {
-      recruiterEmail,
-      recruiterName,
-      candidateName,
-      jobTitle,
-      companyName,
-      scheduledAt,
-      durationMinutes,
-      interviewType,
-      location,
-      notes,
-    }: InterviewEmailRequest = await req.json();
-
-    if (!recruiterEmail) {
-      throw new Error("Recruiter email is required");
-    }
+    const body: Partial<InterviewEmailRequest> = await req.json();
+    const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : "");
+    const recruiterName = escapeHtml(str(body.recruiterName, 100));
+    const candidateName = escapeHtml(str(body.candidateName, 150) || "Candidate");
+    const jobTitle = escapeHtml(str(body.jobTitle, 150));
+    const companyName = escapeHtml(str(body.companyName, 150));
+    const location = escapeHtml(str(body.location, 300));
+    const notes = escapeHtml(str(body.notes, 2000));
+    const scheduledAt = str(body.scheduledAt, 50);
+    const durationRaw = Number(body.durationMinutes);
+    const durationMinutes = Number.isFinite(durationRaw) && durationRaw > 0 && durationRaw <= 1440 ? Math.round(durationRaw) : 30;
+    const interviewType = str(body.interviewType, 30);
 
     const date = new Date(scheduledAt);
+    if (isNaN(date.getTime())) {
+      return new Response(JSON.stringify({ error: "Invalid date" }), {
+        status: 400, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
     const formattedDate = date.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
     const formattedTime = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
 
