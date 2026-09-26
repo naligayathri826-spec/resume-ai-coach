@@ -15,6 +15,13 @@
       "when": 1790181076200,
       "tag": "0001_protect_application_status",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790428740819,
+      "tag": "0002_internal_job_secrets",
+      "breakpoints": true
     }
   ]
 }

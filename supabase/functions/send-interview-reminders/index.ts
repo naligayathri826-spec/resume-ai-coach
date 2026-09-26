@@ -16,6 +16,25 @@ serve(async (req: Request): Promise<Response> => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Only the scheduler may run this job: verify the shared secret stored server-side
+    const provided = req.headers.get("x-cron-secret") ?? "";
+    const { data: secretRow } = await supabase
+      .from("internal_job_secrets")
+      .select("value")
+      .eq("name", "send-interview-reminders")
+      .maybeSingle();
+    const expected = secretRow?.value ?? "";
+    let diff = provided.length ^ expected.length;
+    for (let i = 0; i < Math.min(provided.length, expected.length); i++) {
+      diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
+    }
+    if (!expected || diff !== 0) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
 
     if (!resendApiKey) {
       return new Response(
@@ -23,8 +42,6 @@ serve(async (req: Request): Promise<Response> => {
         { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
-
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const now = new Date();
     const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
@@ -68,9 +85,16 @@ serve(async (req: Request): Promise<Response> => {
       const date = new Date(interview.scheduled_at);
       const formattedDate = date.toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
       const formattedTime = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-      const candidateName = interview.candidates?.candidate_name || "Unknown Candidate";
-      const jobTitle = interview.hiring_jobs?.job_title || "Open Position";
-      const companyName = interview.hiring_jobs?.company_name || "";
+      const esc = (s: unknown) => String(s ?? "").slice(0, 500)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+      const rawCandidateName = String(interview.candidates?.candidate_name || "Unknown Candidate").replace(/[\r\n]+/g, " ").slice(0, 100);
+      const candidateName = esc(rawCandidateName);
+      const jobTitle = esc(interview.hiring_jobs?.job_title || "Open Position");
+      const companyName = esc(interview.hiring_jobs?.company_name || "");
+      interview.location = interview.location ? esc(interview.location) : null;
+      interview.notes = interview.notes ? esc(interview.notes) : null;
+      interview.duration_minutes = Number(interview.duration_minutes) || 60;
       const isOneHour = interview.reminderType === "1_hour";
 
       const emailHtml = `
@@ -112,8 +136,8 @@ serve(async (req: Request): Promise<Response> => {
           from: "ResumeAI <onboarding@resend.dev>",
           to: [profile.email],
           subject: isOneHour
-            ? `⏰ Interview with ${candidateName} starts in 1 hour!`
-            : `📅 Reminder: Interview with ${candidateName} tomorrow`,
+            ? `⏰ Interview with ${rawCandidateName} starts in 1 hour!`
+            : `📅 Reminder: Interview with ${rawCandidateName} tomorrow`,
           html: emailHtml,
         }),
       });
