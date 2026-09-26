@@ -136,8 +136,8 @@ serve(async (req: Request): Promise<Response> => {
           from: "ResumeAI <onboarding@resend.dev>",
           to: [profile.email],
           subject: isOneHour
-            ? `⏰ Interview with ${candidateName} starts in 1 hour!`
-            : `📅 Reminder: Interview with ${candidateName} tomorrow`,
+            ? `⏰ Interview with ${rawCandidateName} starts in 1 hour!`
+            : `📅 Reminder: Interview with ${rawCandidateName} tomorrow`,
           html: emailHtml,
         }),
       });
